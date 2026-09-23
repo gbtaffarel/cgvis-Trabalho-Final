@@ -1,18 +1,20 @@
 # Especificação da Implementação
 
 > [!CAUTION]
+>
 > - Você <ins>**não pode utilizar ferramentas de IA para escrever esta
 >   especificação**</ins>
 
 > [!WARNING]
+>
 > - Após a entrega da primeira versão completa, esta especificação não
 >   poderá ser alterada. A implementação final deverá corresponder ao que
 >   estiver descrito neste arquivo.
 
 ## Integrantes da dupla
 
-- **Aluno 1 - Nome**: <mark>`<preencher>`</mark>
-- **Aluno 1 - Cartão UFRGS**: <mark>`<preencher>`</mark>
+- **Aluno 1 - Nome**: <mark>`Gabriel Barbosa Taffarel`</mark>
+- **Aluno 1 - Cartão UFRGS**: <mark>`00297549`</mark>
 
 - **Aluno 2 - Nome**: <mark>`Pedro Fantin da Silva`</mark>
 - **Aluno 2 - Cartão UFRGS**: <mark>`00228481`</mark>
@@ -27,6 +29,7 @@
 ### Vídeo - Link
 
 > [!IMPORTANT]
+>
 > - Coloque aqui um link para um vídeo que mostre a aplicação gráfica
 >   de referência que você vai implementar. **Sua implementação deverá
 >   ser o mais parecido possível com o que é mostrado no vídeo (mais
@@ -44,6 +47,7 @@
 ### Vídeo - Timestamp
 
 > [!IMPORTANT]
+>
 > - Coloque aqui um **intervalo de ~30 segundos** do vídeo acima, que
 >   será a base de comparação para avaliar se o seu trabalho final
 >   conseguiu ou não reproduzir a referência.
@@ -54,6 +58,7 @@
 ### Imagens
 
 > [!IMPORTANT]
+>
 > - Coloque aqui **três imagens** capturadas do vídeo acima, que você
 >   irá usar como ilustração para as explicações que vêm abaixo.
 > - As imagens devem estar armazenadas neste repositório, no diretório
@@ -86,45 +91,56 @@
 Para cada um dos requisitos abaixo (detalhados no [Enunciado do Trabalho final - Moodle](https://moodle.ufrgs.br/mod/assign/view.php?id=6302370)), escreva um parágrafo **curto** explicando como este requisito será atendido, apontando itens específicos do vídeo/imagens que você incluiu acima que atendem estes requisitos.
 
 ### Malhas poligonais complexas
+
 <mark>`Os itens colecionáveis terão suas malhas substituidas por modelos mais complexos para atender a este requisito.`</mark>
 
 ### Transformações geométricas controladas pelo usuário
+
 <mark>`O usuário controla a translação da bola através de movimento e saltos e rotaciona a câmera.`</mark>
 
 ### Diferentes tipos de câmeras
+
 <mark>`A câmera em terceira pessoa que segue a bola é uma câmera orbital com 4 direções fixas, será icluído um modo de visão em primeira pessoa`</mark>
 
 ### Instâncias de objetos
+
 <mark>`Intens colecionáveis (moedas) serão instanciados.`</mark>
 
 ### Testes de intersecção
+
 <mark>`A colisão com colecionáveis e obstaculos será implementada por testes de intersecção.`</mark>
 
 ### Modelos de Iluminação em todos os objetos
+
 <mark>`Originalmente a iluminação parece estar "escrita" nas texturas dos objetos más implementaremos o modelo de Phong com luz ambiente para todos os objetos.`</mark>
 
 ### Mapeamento de texturas em todos os objetos
+
 <mark>`Todos os objetos tem texturas mapeadas.`</mark>
 
 ### Movimentação com curva Bézier cúbica
+
 <mark>`A elevação durante o salto será computada com uma curva de Bézier cúbica.`</mark>
 
 ### Animações baseadas no tempo ($\Delta t$)
+
 <mark>`A rotação da bola é calculada relativa ao tempo após o input do usuário. A rotação da placa "Exit" é baseada no tempo.`</mark>
 
 ### Funcionalidade extra obrigatória
 
 > [!IMPORTANT]
+>
 > - Descreva a funcionalidade extra relacionada à Computação Gráfica
 >   que será implementada.
 > - Esta funcionalidade também deverá ser documentada no arquivo
 >   `README.md` da entrega final.
 
-<mark>`Objetos exceto as plataformas terão sombras projetadas.`</mark>
+<mark>`Objetos exceto as plataformas terão sombras projetadas. Será implementado uma HUD com informações para o jogador.`</mark>
 
 ## Limitações esperadas
 
 > [!IMPORTANT]
+>
 > - Coloque aqui uma lista de detalhes visuais ou de interação que
 >   aparecem no vídeo e/ou imagens acima, mas que você **não pretende
 >   implementar** ou que você **irá implementar parcialmente**.
