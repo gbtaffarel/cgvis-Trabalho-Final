@@ -22,6 +22,8 @@
 - **Título do trabalho**: <mark>`<preencher>`</mark>
 - **Parágrafo curto descrevendo o que será implementado**: <mark>Será implementado um clone do jogo Kula World, lançado originalmente para o Playstation. O jogador controla uma bola percorrendo um ambiente de plataformas 3D. O jogador deve encontrar uma chave e se dirigir a saída do nível coletando itens bonus e evitando obstáculos no caminho utilizando a habilidade de mudar sua orientação ao trocar de superfície.</mark>
 
+> Comentário Professor: Considerem os efeitos visuais adicionais mencionados, como o skybox, os brilhos coloridos, a deformação da bola e o detalhamento das plataformas, requisitos de fidelidade visual à referência que vocês escolheram.
+
 ## Especificação visual
 
 ### Vídeo - Link
@@ -88,8 +90,20 @@ Para cada um dos requisitos abaixo (detalhados no [Enunciado do Trabalho final -
 ### Malhas poligonais complexas
 <mark>`Os itens colecionáveis terão suas malhas substituidas por modelos mais complexos para atender a este requisito.`</mark>
 
+> Comentário Professor: Detalhem suficientemente a geometria das plataformas para reproduzir, da forma mais fiel possível, as plataformas do jogo original. Utilizem plataformas com geometrias variadas, que proporcionem uma jogabilidade interessante.
+
+> Comentário Professor: Implementem um skybox com a imagem de fundo, reproduzindo o ambiente visual do jogo original.
+
 ### Transformações geométricas controladas pelo usuário
 <mark>`O usuário controla a translação da bola através de movimento e saltos e rotaciona a câmera.`</mark>
+
+> Comentário Professor: Permitam que a bola se movimente em várias direções. No jogo, não há uma direção fixa de gravidade: vocês devem permitir que a bola fique aderida às paredes e se desloque sobre diferentes superfícies.
+
+> Comentário Professor: Façam o rolamento da bola ser fisicamente coerente. Quando ela rolar, façam sua textura girar corretamente, acompanhando o movimento.
+
+> Comentário Professor: Durante o salto, a bola apresenta uma animação de deformação (squish), sendo comprimida e escalada. Implementem esse efeito.
+
+> Comentário Professor: Na especificação, vocês mencionam que o usuário controla a translação da bola. Considerem também que, durante o rolamento, o usuário controla indiretamente a rotação da bola.
 
 ### Diferentes tipos de câmeras
 <mark>`A câmera em terceira pessoa que segue a bola é uma câmera orbital com 4 direções fixas, será icluído um modo de visão em primeira pessoa`</mark>
@@ -103,6 +117,10 @@ Para cada um dos requisitos abaixo (detalhados no [Enunciado do Trabalho final -
 ### Modelos de Iluminação em todos os objetos
 <mark>`Originalmente a iluminação parece estar "escrita" nas texturas dos objetos más implementaremos o modelo de Phong com luz ambiente para todos os objetos.`</mark>
 
+> Comentário Professor: Diferenciem claramente os materiais dos objetos por meio do modelo de iluminação. Por exemplo, deem à bola um aspecto mais plástico e às moedas uma aparência metalizada. Talvez o modelo de Phong seja simples demais para vocês evidenciarem essas diferenças.
+
+> Comentário Professor: Quando a bola coleta itens, aparecem brilhos coloridos que vocês devem implementar como efeitos de iluminação. Esses efeitos são independentes do sistema de partículas. Não vejo problema em vocês deixarem de implementar as partículas, conforme indicaram na especificação, mas implementem os efeitos de iluminação durante a coleta.
+
 ### Mapeamento de texturas em todos os objetos
 <mark>`Todos os objetos tem texturas mapeadas.`</mark>
 
@@ -111,6 +129,8 @@ Para cada um dos requisitos abaixo (detalhados no [Enunciado do Trabalho final -
 
 ### Animações baseadas no tempo ($\Delta t$)
 <mark>`A rotação da bola é calculada relativa ao tempo após o input do usuário. A rotação da placa "Exit" é baseada no tempo.`</mark>
+
+> Comentário Professor: Baseiem no tempo tanto a translação quanto a rotação da bola, incluindo a aceleração, para que a movimentação não dependa da velocidade de processamento.
 
 ### Funcionalidade extra obrigatória
 
@@ -122,6 +142,8 @@ Para cada um dos requisitos abaixo (detalhados no [Enunciado do Trabalho final -
 
 <mark>`Objetos exceto as plataformas terão sombras projetadas.`</mark>
 
+> Comentário Professor: Vocês afirmam que implementarão sombras projetadas pelos objetos, exceto pelas plataformas. Esclareçam o que significa essa exceção, distinguindo os objetos que projetam sombras daqueles que recebem sombras.
+
 ## Limitações esperadas
 
 > [!IMPORTANT]
@@ -132,3 +154,5 @@ Para cada um dos requisitos abaixo (detalhados no [Enunciado do Trabalho final -
 >   que será implementado parcialmente.
 
 <mark>`Efeitos volumétricos não serão implementados. Serão excluídas as telas de início/fim de nível. Efeitos de particula como os que ocorrem ao coletar intens não serão implementados.`</mark>
+
+> Comentário Professor: Vocês mencionam que não implementarão efeitos volumétricos. Esclareçam quais são esses efeitos e o que exatamente pretendem deixar de implementar.
