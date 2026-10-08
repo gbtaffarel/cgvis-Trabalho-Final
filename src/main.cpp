@@ -301,6 +301,7 @@ int main(int argc, char* argv[])
     // Carregamos duas imagens para serem utilizadas como textura
     LoadTextureImage("../../data/texture/red_brick_diff_1k.jpg");      // TextureImage0
     LoadTextureImage("../../data/texture/rocky_terrain_02_diff_1k.jpg"); // TextureImage1
+    LoadTextureImage("../../data/texture/coin_diff_1k.png"); // TextureImage2
 
     // Construímos a representação de objetos geométricos através de malhas de triângulos
     ObjModel spheremodel("../../data/obj/sphere.obj");
@@ -314,6 +315,10 @@ int main(int argc, char* argv[])
     ObjModel planemodel("../../data/obj/plane.obj");
     ComputeNormals(&planemodel);
     BuildTrianglesAndAddToVirtualScene(&planemodel);
+
+    ObjModel coinmodel("../../data/obj/coin.obj");
+    ComputeNormals(&coinmodel);
+    BuildTrianglesAndAddToVirtualScene(&coinmodel);
 
     if ( argc > 1 )
     {
@@ -413,25 +418,19 @@ int main(int argc, char* argv[])
         #define SPHERE 0
         #define BUNNY  1
         #define PLANE  2
+        #define COIN   3
 
-        // Desenhamos o modelo da esfera
-        model = Matrix_Translate(-1.0f,0.0f,0.0f)
-              * Matrix_Rotate_Z(0.6f)
-              * Matrix_Rotate_X(0.2f)
-              * Matrix_Rotate_Y(g_AngleY + (float)glfwGetTime() * 0.1f);
+        // Desenhamos o modelo da moeda
+        model = Matrix_Translate(0.0f,-1.0f,0.0f)
+        * Matrix_Rotate_Y(g_AngleZ + (float)glfwGetTime() * 0.1f);
         glUniformMatrix4fv(g_model_uniform, 1 , GL_FALSE , glm::value_ptr(model));
-        glUniform1i(g_object_id_uniform, SPHERE);
-        DrawVirtualObject("the_sphere");
-
-        // Desenhamos o modelo do coelho
-        model = Matrix_Translate(1.0f,0.0f,0.0f)
-              * Matrix_Rotate_X(g_AngleX + (float)glfwGetTime() * 0.1f);
-        glUniformMatrix4fv(g_model_uniform, 1 , GL_FALSE , glm::value_ptr(model));
-        glUniform1i(g_object_id_uniform, BUNNY);
-        DrawVirtualObject("the_bunny");
+        glUniform1i(g_object_id_uniform, COIN);
+        DrawVirtualObject("the_coin");
 
         // Desenhamos o plano do chão
-        model = Matrix_Translate(0.0f,-1.1f,0.0f);
+        // Plano escalado de maneira a corresponder a 1m * 1m na escala do Blender
+        // para servir de referência de escala para os outros objetos.
+        model = Matrix_Translate(0.0f,-1.0f,0.0f) * Matrix_Scale(0.5f, 0.0f, 0.5f);
         glUniformMatrix4fv(g_model_uniform, 1 , GL_FALSE , glm::value_ptr(model));
         glUniform1i(g_object_id_uniform, PLANE);
         DrawVirtualObject("the_plane");
