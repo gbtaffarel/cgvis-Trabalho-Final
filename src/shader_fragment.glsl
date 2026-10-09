@@ -62,8 +62,8 @@ void main()
     vec4 n = normalize(normal);
 
     // Vetor que define o sentido da fonte de luz em relação ao ponto atual.
-    vec4 l = normalize(vec4(1.0,1.0,0.0,0.0));
-
+    vec4 l = normalize(vec4(0.2,1.0,0.2,0.0));
+    vec4 r = -l + (2*n *(dot(n, l)));
     // Vetor que define o sentido da câmera em relação ao ponto atual.
     vec4 v = normalize(camera_position - p);
 
@@ -73,6 +73,7 @@ void main()
 
 	// Coeficiente de refletância difusa
 	vec3 Kd0;
+    vec3 Ks0 = vec3(0.0, 0.0, 0.0);
 
     if ( object_id == SPHERE )
     {
@@ -143,6 +144,7 @@ void main()
 
 		// Obtemos a refletância difusa a partir da leitura da imagem TextureImage1
 		Kd0 = texture(TextureImage2, vec2(U,V)).rgb;
+        Ks0 = vec3(1.0, 1.0, 1.0);
     } else if ( object_id == KEY )
     {
         U = texcoords.x;
@@ -150,12 +152,14 @@ void main()
 
 		// Obtemos a refletância difusa a partir da leitura da imagem TextureImage1
 		Kd0 = texture(TextureImage3, vec2(U,V)).rgb;
+        Ks0 = vec3(1.0, 1.0, 1.0);
     }
 
     // Equação de Iluminação
     float lambert = max(0,dot(n,l));
-
-    color.rgb = Kd0 * (lambert + 0.01);
+    float phong = max(0, dot(r, v));
+    vec3 ambient = vec3(0.02, 0.02, 0.025);
+    color.rgb = Kd0 * (lambert + 0.01) + (Ks0 * phong) + ambient;
 
     // NOTE: Se você quiser fazer o rendering de objetos transparentes, é
     // necessário:
