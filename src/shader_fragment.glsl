@@ -35,6 +35,11 @@ uniform sampler2D TextureImage0;
 uniform sampler2D TextureImage1;
 uniform sampler2D TextureImage2;
 uniform sampler2D TextureImage3;
+uniform sampler2D TextureImage4;
+uniform sampler2D TextureImage5;
+uniform sampler2D TextureImage6;
+uniform sampler2D TextureImage7;
+uniform sampler2D TextureImage8;
 
 // O valor de saída ("out") de um Fragment Shader é a cor final do fragmento.
 out vec4 color;
@@ -101,7 +106,9 @@ void main()
         V = (phi + M_PI_2) / M_PI;
 
 		// Obtemos a refletância difusa a partir da leitura da imagem TextureImage0
-		Kd0 = texture(TextureImage0, vec2(U,V)).rgb;
+		Kd0 = texture(TextureImage5, vec2(U,V)).rgb * vec3(0.1, 0.6, 0.1);
+        n =  5 * texture(TextureImage4, vec2(U,V));
+        Ks0 = 1 * texture(TextureImage5, vec2(U,V)).rgb;
     }
     else if ( object_id == BUNNY )
     {

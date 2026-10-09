@@ -303,6 +303,9 @@ int main(int argc, char* argv[])
     LoadTextureImage("../../data/texture/rocky_terrain_02_diff_1k.jpg"); // TextureImage1
     LoadTextureImage("../../data/texture/coin_diff_1k.png"); // TextureImage2
     LoadTextureImage("../../data/texture/key_diff_1k.png"); // TextureImage3
+    LoadTextureImage("../../data/texture/RoadLines021A_1K-PNG_NormalGL.png"); // TextureImage4
+    LoadTextureImage("../../data/texture/RoadLines021A_1K-PNG_Roughness.png"); // TextureImage5
+    LoadTextureImage("../../data/texture/RoadLines021A.png"); // TextureImage6
 
     // Construímos a representação de objetos geométricos através de malhas de triângulos
     ObjModel spheremodel("../../data/obj/sphere.obj");
@@ -450,6 +453,19 @@ int main(int argc, char* argv[])
 
         // Desenhamos o plano do chão
         model = Matrix_Translate(1.0f,-1.0f,0.0f) * Matrix_Scale(0.5f, 0.0f, 0.5f);
+        glUniformMatrix4fv(g_model_uniform, 1 , GL_FALSE , glm::value_ptr(model));
+        glUniform1i(g_object_id_uniform, PLANE);
+        DrawVirtualObject("the_plane");
+
+        // Desenhamos o modelo da esfera
+        model =   Matrix_Translate(2.0f, 0.0f, 0.0f) * Matrix_Scale(0.5f, 0.5f, 0.5f)
+        * Matrix_Rotate_Y(g_AngleZ + (float)glfwGetTime() * 0.3f);
+        glUniformMatrix4fv(g_model_uniform, 1 , GL_FALSE , glm::value_ptr(model));
+        glUniform1i(g_object_id_uniform, SPHERE);
+        DrawVirtualObject("the_sphere");
+
+        // Desenhamos o plano do chão
+        model = Matrix_Translate(2.0f,-1.0f,0.0f) * Matrix_Scale(0.5f, 0.0f, 0.5f);
         glUniformMatrix4fv(g_model_uniform, 1 , GL_FALSE , glm::value_ptr(model));
         glUniform1i(g_object_id_uniform, PLANE);
         DrawVirtualObject("the_plane");
@@ -621,6 +637,9 @@ void LoadShadersFromFiles()
     glUniform1i(glGetUniformLocation(g_GpuProgramID, "TextureImage1"), 1);
     glUniform1i(glGetUniformLocation(g_GpuProgramID, "TextureImage2"), 2);
     glUniform1i(glGetUniformLocation(g_GpuProgramID, "TextureImage3"), 3);
+    glUniform1i(glGetUniformLocation(g_GpuProgramID, "TextureImage4"), 4);
+    glUniform1i(glGetUniformLocation(g_GpuProgramID, "TextureImage5"), 5);
+    glUniform1i(glGetUniformLocation(g_GpuProgramID, "TextureImage6"), 6);
     glUseProgram(0);
 }
 
