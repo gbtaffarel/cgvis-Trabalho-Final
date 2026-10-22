@@ -306,6 +306,7 @@ int main(int argc, char* argv[])
     LoadTextureImage("../../data/texture/RoadLines021A_1K-PNG_NormalGL.png"); // TextureImage4
     LoadTextureImage("../../data/texture/RoadLines021A_1K-PNG_Roughness.png"); // TextureImage5
     LoadTextureImage("../../data/texture/RoadLines021A.png"); // TextureImage6
+    LoadTextureImage("../../data/texture/banana_diff_1k.png"); // TextureImage7
 
     // Construímos a representação de objetos geométricos através de malhas de triângulos
     ObjModel spheremodel("../../data/obj/sphere.obj");
@@ -327,6 +328,10 @@ int main(int argc, char* argv[])
     ObjModel keymodel("../../data/obj/key.obj");
     ComputeNormals(&keymodel);
     BuildTrianglesAndAddToVirtualScene(&keymodel);
+
+    ObjModel bananamodel("../../data/obj/banana.obj");
+    ComputeNormals(&bananamodel);
+    BuildTrianglesAndAddToVirtualScene(&bananamodel);
 
     if ( argc > 1 )
     {
@@ -428,6 +433,7 @@ int main(int argc, char* argv[])
         #define PLANE  2
         #define COIN   3
         #define KEY    4
+        #define BANANA 5
 
         // Desenhamos o modelo da moeda
         model = Matrix_Translate(0.0f,-1.0f,0.0f)
@@ -469,6 +475,21 @@ int main(int argc, char* argv[])
         glUniformMatrix4fv(g_model_uniform, 1 , GL_FALSE , glm::value_ptr(model));
         glUniform1i(g_object_id_uniform, PLANE);
         DrawVirtualObject("the_plane");
+
+        // Desenhamos o modelo da banana
+        model = Matrix_Translate(0.0f,-1.0f,1.0f)
+        * Matrix_Rotate_Y(g_AngleZ + (float)glfwGetTime() * 0.3f);
+        glUniformMatrix4fv(g_model_uniform, 1 , GL_FALSE , glm::value_ptr(model));
+        glUniform1i(g_object_id_uniform, BANANA);
+        DrawVirtualObject("the_banana");
+
+        // Desenhamos o plano do chão
+        model = Matrix_Translate(0.0f,-1.0f,1.0f) * Matrix_Scale(0.5f, 0.0f, 0.5f);
+        glUniformMatrix4fv(g_model_uniform, 1 , GL_FALSE , glm::value_ptr(model));
+        glUniform1i(g_object_id_uniform, PLANE);
+        DrawVirtualObject("the_plane");
+
+
 
         // Imprimimos na tela os ângulos de Euler que controlam a rotação do
         // terceiro cubo.
@@ -640,6 +661,7 @@ void LoadShadersFromFiles()
     glUniform1i(glGetUniformLocation(g_GpuProgramID, "TextureImage4"), 4);
     glUniform1i(glGetUniformLocation(g_GpuProgramID, "TextureImage5"), 5);
     glUniform1i(glGetUniformLocation(g_GpuProgramID, "TextureImage6"), 6);
+    glUniform1i(glGetUniformLocation(g_GpuProgramID, "TextureImage7"), 7);
     glUseProgram(0);
 }
 

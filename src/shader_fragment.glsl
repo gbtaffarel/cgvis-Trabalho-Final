@@ -24,6 +24,7 @@ uniform mat4 projection;
 #define PLANE  2
 #define COIN   3
 #define KEY    4
+#define BANANA 5
 uniform int object_id;
 
 // Parâmetros da axis-aligned bounding box (AABB) do modelo
@@ -67,7 +68,7 @@ void main()
     vec4 n = normalize(normal);
 
     // Vetor que define o sentido da fonte de luz em relação ao ponto atual.
-    vec4 l = normalize(vec4(0.2,1.0,0.2,0.0));
+    vec4 l = normalize(vec4(0.2,0.2,0.2,0.0));
     vec4 r = -l + (2*n *(dot(n, l)));
     // Vetor que define o sentido da câmera em relação ao ponto atual.
     vec4 v = normalize(camera_position - p);
@@ -160,6 +161,14 @@ void main()
 		// Obtemos a refletância difusa a partir da leitura da imagem TextureImage1
 		Kd0 = texture(TextureImage3, vec2(U,V)).rgb;
         Ks0 = vec3(1.0, 1.0, 1.0);
+    } else if ( object_id == BANANA )
+    {
+        U = texcoords.x;
+        V = texcoords.y;
+
+		// Obtemos a refletância difusa a partir da leitura da imagem TextureImage1
+		Kd0 = texture(TextureImage7, vec2(U,V)).rgb;
+        Ks0 = vec3(0.1, 0.1, 0.1);
     }
 
     // Equação de Iluminação
