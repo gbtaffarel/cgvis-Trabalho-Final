@@ -109,7 +109,7 @@ void main()
 		// Obtemos a refletância difusa a partir da leitura da imagem TextureImage0
 		Kd0 = texture(TextureImage5, vec2(U,V)).rgb * vec3(0.1, 0.6, 0.1);
         n =  5 * texture(TextureImage4, vec2(U,V));
-        Ks0 = 1 * texture(TextureImage5, vec2(U,V)).rgb;
+        Ks0 = 1 * texture(TextureImage8, vec2(U,V)).rgb;
     }
     else if ( object_id == BUNNY )
     {
@@ -152,7 +152,7 @@ void main()
 
 		// Obtemos a refletância difusa a partir da leitura da imagem TextureImage1
 		Kd0 = texture(TextureImage2, vec2(U,V)).rgb;
-        Ks0 = vec3(1.0, 1.0, 1.0);
+        Ks0 = 2 * texture(TextureImage8, vec2(U,V)).rgb + vec3(0.5, 0.5, 0.5);
     } else if ( object_id == KEY )
     {
         U = texcoords.x;
@@ -160,7 +160,7 @@ void main()
 
 		// Obtemos a refletância difusa a partir da leitura da imagem TextureImage1
 		Kd0 = texture(TextureImage3, vec2(U,V)).rgb;
-        Ks0 = vec3(1.0, 1.0, 1.0);
+        Ks0 = 2 * texture(TextureImage8, vec2(U,V)).rgb + vec3(0.5, 0.5, 0.5); 
     } else if ( object_id == BANANA )
     {
         U = texcoords.x;
