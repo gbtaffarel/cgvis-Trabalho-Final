@@ -48,6 +48,7 @@
 // Headers locais, definidos na pasta "include/"
 #include "utils.h"
 #include "matrices.h"
+#include "ball_movement.h"
 
 // Estrutura que representa um modelo geométrico carregado a partir de um
 // arquivo ".obj". Veja https://en.wikipedia.org/wiki/Wavefront_.obj_file .
@@ -115,6 +116,7 @@ void PopMatrix(glm::mat4& M);
 // Declaração de várias funções utilizadas em main().  Essas estão definidas
 // logo após a definição de main() neste arquivo.
 void BuildTrianglesAndAddToVirtualScene(ObjModel*); // Constrói representação de um ObjModel como malha de triângulos para renderização
+void BuildCubeAndAddToVirtualScene(); // Constrói malha de cubo unitário [-1,1]^3 para os blocos das plataformas
 void ComputeNormals(ObjModel* model); // Computa normais de um ObjModel, caso não existam.
 void LoadShadersFromFiles(); // Carrega os shaders de vértice e fragmento, criando um programa de GPU
 void LoadTextureImage(const char* filename); // Função que carrega imagens de textura
@@ -143,6 +145,7 @@ void TextRendering_ShowModelViewProjection(GLFWwindow* window, glm::mat4 project
 void TextRendering_ShowEulerAngles(GLFWwindow* window);
 void TextRendering_ShowProjection(GLFWwindow* window);
 void TextRendering_ShowFramesPerSecond(GLFWwindow* window);
+void TextRendering_ShowBallHUD(GLFWwindow* window);
 
 // Funções callback para comunicação com o sistema operacional e interação do
 // usuário. Veja mais comentários nas definições das mesmas, abaixo.
@@ -224,6 +227,12 @@ GLint g_bbox_max_uniform;
 
 // Número de texturas carregadas pela função LoadTextureImage()
 GLuint g_NumLoadedTextures = 0;
+
+// Estado global da bola e controles de movimentação/câmera
+BallState  g_Ball;
+CameraMode g_CameraMode   = CAMERA_THIRD_PERSON;
+bool       g_KeyWPressed  = false;
+bool       g_KeySPressed  = false;
 
 int main(int argc, char* argv[])
 {
@@ -315,6 +324,13 @@ int main(int argc, char* argv[])
     ComputeNormals(&planemodel);
     BuildTrianglesAndAddToVirtualScene(&planemodel);
 
+    // Construímos a malha cúbica "the_cube" para os blocos de plataforma 3D
+    BuildCubeAndAddToVirtualScene();
+
+    // Inicializamos os blocos do nível de teste e o estado inicial da bola
+    InitLevelBlocks();
+    ResetBallState(g_Ball);
+
     if ( argc > 1 )
     {
         ObjModel model(argv[1]);
@@ -332,18 +348,30 @@ int main(int argc, char* argv[])
     glCullFace(GL_BACK);
     glFrontFace(GL_CCW);
 
+    float prev_time = (float)glfwGetTime();
+
     // Ficamos em um loop infinito, renderizando, até que o usuário feche a janela
     while (!glfwWindowShouldClose(window))
     {
+        // Calculamos o passo de tempo (Delta t) para animações e física independentes de FPS
+        float current_time = (float)glfwGetTime();
+        float dt = current_time - prev_time;
+        prev_time = current_time;
+
+        // Leitura contínua das teclas de avanço/frenagem (W/S ou Setas Cima/Baixo)
+        g_KeyWPressed = (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
+                     || (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS);
+        g_KeySPressed = (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
+                     || (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS);
+
+        // Atualizamos a física de rolamento, salto Bézier, deformação (squish) e gravidade dinâmica
+        UpdateBallPhysics(g_Ball, dt, g_KeyWPressed, g_KeySPressed);
+
         // Aqui executamos as operações de renderização
 
-        // Definimos a cor do "fundo" do framebuffer como branco.  Tal cor é
-        // definida como coeficientes RGBA: Red, Green, Blue, Alpha; isto é:
-        // Vermelho, Verde, Azul, Alpha (valor de transparência).
-        // Conversaremos sobre sistemas de cores nas aulas de Modelos de Iluminação.
-        //
+        // Definimos a cor do "fundo" do framebuffer (azul celeste inspirado no Kula World)
         //           R     G     B     A
-        glClearColor(0.9f, 0.9f, 1.0f, 1.0f);
+        glClearColor(0.32f, 0.56f, 0.85f, 1.0f);
 
         // "Pintamos" todos os pixels do framebuffer com a cor definida acima,
         // e também resetamos todos os pixels do Z-buffer (depth buffer).
@@ -353,21 +381,45 @@ int main(int argc, char* argv[])
         // os shaders de vértice e fragmentos).
         glUseProgram(g_GpuProgramID);
 
-        // Computamos a posição da câmera utilizando coordenadas esféricas.  As
-        // variáveis g_CameraDistance, g_CameraPhi, e g_CameraTheta são
-        // controladas pelo mouse do usuário. Veja as funções CursorPosCallback()
-        // e ScrollCallback().
-        float r = g_CameraDistance;
-        float y = r*sin(g_CameraPhi);
-        float z = r*cos(g_CameraPhi)*cos(g_CameraTheta);
-        float x = r*cos(g_CameraPhi)*sin(g_CameraTheta);
+        // Definição dos parâmetros da câmera conforme o modo selecionado (tecla C)
+        glm::vec4 camera_position_c;
+        glm::vec4 camera_view_vector;
+        glm::vec4 camera_up_vector;
 
-        // Abaixo definimos as varáveis que efetivamente definem a câmera virtual.
-        // Veja slides 195-227 e 229-234 do documento Aula_08_Sistemas_de_Coordenadas.pdf.
-        glm::vec4 camera_position_c  = glm::vec4(x,y,z,1.0f); // Ponto "c", centro da câmera
-        glm::vec4 camera_lookat_l    = glm::vec4(0.0f,0.0f,0.0f,1.0f); // Ponto "l", para onde a câmera (look-at) estará sempre olhando
-        glm::vec4 camera_view_vector = camera_lookat_l - camera_position_c; // Vetor "view", sentido para onde a câmera está virada
-        glm::vec4 camera_up_vector   = glm::vec4(0.0f,1.0f,0.0f,0.0f); // Vetor "up" fixado para apontar para o "céu" (eito Y global)
+        if (g_CameraMode == CAMERA_THIRD_PERSON)
+        {
+            // Câmera em 3ª pessoa seguindo a bola e alinhada ao vetor de gravidade dinâmico (-cam_up)
+            glm::vec4 camera_lookat_l = g_Ball.position_world
+                                      + 0.35f * g_Ball.cam_up
+                                      + 0.40f * g_Ball.cam_forward;
+            camera_position_c  = g_Ball.position_world
+                               - 3.10f * g_Ball.cam_forward
+                               + 1.55f * g_Ball.cam_up;
+            camera_view_vector = camera_lookat_l - camera_position_c;
+            camera_up_vector   = g_Ball.cam_up;
+        }
+        else if (g_CameraMode == CAMERA_FIRST_PERSON)
+        {
+            // Câmera em 1ª pessoa posicionada na frente/topo da bola
+            camera_position_c  = g_Ball.position_world
+                               + (BALL_RADIUS * 0.85f) * g_Ball.cam_up
+                               + (BALL_RADIUS * 0.55f) * g_Ball.cam_forward;
+            camera_view_vector = g_Ball.cam_forward - 0.18f * g_Ball.cam_up;
+            camera_up_vector   = g_Ball.cam_up;
+        }
+        else
+        {
+            // Câmera orbital livre controlada pelo mouse ao redor da bola
+            float r = g_CameraDistance;
+            float y = r*sin(g_CameraPhi);
+            float z = r*cos(g_CameraPhi)*cos(g_CameraTheta);
+            float x = r*cos(g_CameraPhi)*sin(g_CameraTheta);
+
+            glm::vec4 camera_lookat_l = g_Ball.position_world;
+            camera_position_c  = camera_lookat_l + glm::vec4(x, y, z, 0.0f);
+            camera_view_vector = camera_lookat_l - camera_position_c;
+            camera_up_vector   = glm::vec4(0.0f, 1.0f, 0.0f, 0.0f);
+        }
 
         // Computamos a matriz "View" utilizando os parâmetros da câmera para
         // definir o sistema de coordenadas da câmera.  Veja slides 2-14, 184-190 e 236-242 do documento Aula_08_Sistemas_de_Coordenadas.pdf.
@@ -379,7 +431,7 @@ int main(int argc, char* argv[])
         // Note que, no sistema de coordenadas da câmera, os planos near e far
         // estão no sentido negativo! Veja slides 176-204 do documento Aula_09_Projecoes.pdf.
         float nearplane = -0.1f;  // Posição do "near plane"
-        float farplane  = -10.0f; // Posição do "far plane"
+        float farplane  = -60.0f; // Posição do "far plane" suficiente para enxergar todo o nível
 
         if (g_UsePerspectiveProjection)
         {
@@ -414,31 +466,35 @@ int main(int argc, char* argv[])
         #define BUNNY  1
         #define PLANE  2
 
-        // Desenhamos o modelo da esfera
-        model = Matrix_Translate(-1.0f,0.0f,0.0f)
-              * Matrix_Rotate_Z(0.6f)
-              * Matrix_Rotate_X(0.2f)
-              * Matrix_Rotate_Y(g_AngleY + (float)glfwGetTime() * 0.1f);
-        glUniformMatrix4fv(g_model_uniform, 1 , GL_FALSE , glm::value_ptr(model));
-        glUniform1i(g_object_id_uniform, SPHERE);
-        DrawVirtualObject("the_sphere");
+        // Desenhamos todos os blocos 3D das plataformas do nível
+        for (const GridCoord& blk : GetLevelBlocks())
+        {
+            glm::vec4 center = BlockCenterWorld(blk);
+            model = Matrix_Translate(center.x, center.y, center.z);
+            glUniformMatrix4fv(g_model_uniform, 1, GL_FALSE, glm::value_ptr(model));
+            glUniform1i(g_object_id_uniform, PLANE);
+            DrawVirtualObject("the_cube");
+        }
 
-        // Desenhamos o modelo do coelho
-        model = Matrix_Translate(1.0f,0.0f,0.0f)
-              * Matrix_Rotate_X(g_AngleX + (float)glfwGetTime() * 0.1f);
+        // Desenhamos a bola com sua matriz composta (Translação * Squish * Escala * Rolamento)
+        if (g_CameraMode != CAMERA_FIRST_PERSON)
+        {
+            model = GetBallModelMatrix(g_Ball);
+            glUniformMatrix4fv(g_model_uniform, 1 , GL_FALSE , glm::value_ptr(model));
+            glUniform1i(g_object_id_uniform, SPHERE);
+            DrawVirtualObject("the_sphere");
+        }
+
+        // Desenhamos o coelho na ilha final como marcador visual de chegada após o salto
+        model = Matrix_Translate(1.0f * BLOCK_SIZE, 1.4f, -8.0f * BLOCK_SIZE)
+              * Matrix_Scale(0.35f, 0.35f, 0.35f)
+              * Matrix_Rotate_Y(current_time * 1.2f);
         glUniformMatrix4fv(g_model_uniform, 1 , GL_FALSE , glm::value_ptr(model));
         glUniform1i(g_object_id_uniform, BUNNY);
         DrawVirtualObject("the_bunny");
 
-        // Desenhamos o plano do chão
-        model = Matrix_Translate(0.0f,-1.1f,0.0f);
-        glUniformMatrix4fv(g_model_uniform, 1 , GL_FALSE , glm::value_ptr(model));
-        glUniform1i(g_object_id_uniform, PLANE);
-        DrawVirtualObject("the_plane");
-
-        // Imprimimos na tela os ângulos de Euler que controlam a rotação do
-        // terceiro cubo.
-        TextRendering_ShowEulerAngles(window);
+        // Imprimimos na tela informações de estado e controles da bola
+        TextRendering_ShowBallHUD(window);
 
         // Imprimimos na informação sobre a matriz de projeção sendo utilizada.
         TextRendering_ShowProjection(window);
@@ -892,6 +948,113 @@ void BuildTrianglesAndAddToVirtualScene(ObjModel* model)
     glBindVertexArray(0);
 }
 
+// Constrói uma malha cúbica em [-1, 1]^3 com 6 faces orientadas (GL_CCW),
+// normais externas e coordenadas UV [0, 1]^2 em cada face, adicionando "the_cube"
+// em g_VirtualScene para representar os blocos de plataforma 3D.
+void BuildCubeAndAddToVirtualScene()
+{
+    GLuint vertex_array_object_id;
+    glGenVertexArrays(1, &vertex_array_object_id);
+    glBindVertexArray(vertex_array_object_id);
+
+    struct CubeFace
+    {
+        float v[4][3];
+        float n[3];
+    };
+
+    const CubeFace faces[6] = {
+        // +Y (Topo)
+        {{{ -1.0f,  1.0f,  1.0f }, {  1.0f,  1.0f,  1.0f }, {  1.0f,  1.0f, -1.0f }, { -1.0f,  1.0f, -1.0f }}, {  0.0f,  1.0f,  0.0f }},
+        // -Y (Base)
+        {{{ -1.0f, -1.0f, -1.0f }, {  1.0f, -1.0f, -1.0f }, {  1.0f, -1.0f,  1.0f }, { -1.0f, -1.0f,  1.0f }}, {  0.0f, -1.0f,  0.0f }},
+        // +Z (Frente)
+        {{{ -1.0f, -1.0f,  1.0f }, {  1.0f, -1.0f,  1.0f }, {  1.0f,  1.0f,  1.0f }, { -1.0f,  1.0f,  1.0f }}, {  0.0f,  0.0f,  1.0f }},
+        // -Z (Trás)
+        {{{  1.0f, -1.0f, -1.0f }, { -1.0f, -1.0f, -1.0f }, { -1.0f,  1.0f, -1.0f }, {  1.0f,  1.0f, -1.0f }}, {  0.0f,  0.0f, -1.0f }},
+        // +X (Direita)
+        {{{  1.0f, -1.0f,  1.0f }, {  1.0f, -1.0f, -1.0f }, {  1.0f,  1.0f, -1.0f }, {  1.0f,  1.0f,  1.0f }}, {  1.0f,  0.0f,  0.0f }},
+        // -X (Esquerda)
+        {{{ -1.0f, -1.0f, -1.0f }, { -1.0f, -1.0f,  1.0f }, { -1.0f,  1.0f,  1.0f }, { -1.0f,  1.0f, -1.0f }}, { -1.0f,  0.0f,  0.0f }}
+    };
+
+    const float uvs[4][2] = {
+        {0.0f, 0.0f},
+        {1.0f, 0.0f},
+        {1.0f, 1.0f},
+        {0.0f, 1.0f}
+    };
+    const int tri_verts[6] = { 0, 1, 2, 0, 2, 3 };
+
+    std::vector<GLuint> indices;
+    std::vector<float>  model_coefficients;
+    std::vector<float>  normal_coefficients;
+    std::vector<float>  texture_coefficients;
+
+    for (int f = 0; f < 6; ++f)
+    {
+        for (int k = 0; k < 6; ++k)
+        {
+            int vi = tri_verts[k];
+            indices.push_back((GLuint)indices.size());
+
+            model_coefficients.push_back(faces[f].v[vi][0]);
+            model_coefficients.push_back(faces[f].v[vi][1]);
+            model_coefficients.push_back(faces[f].v[vi][2]);
+            model_coefficients.push_back(1.0f);
+
+            normal_coefficients.push_back(faces[f].n[0]);
+            normal_coefficients.push_back(faces[f].n[1]);
+            normal_coefficients.push_back(faces[f].n[2]);
+            normal_coefficients.push_back(0.0f);
+
+            texture_coefficients.push_back(uvs[vi][0]);
+            texture_coefficients.push_back(uvs[vi][1]);
+        }
+    }
+
+    SceneObject cube_obj;
+    cube_obj.name                   = "the_cube";
+    cube_obj.first_index            = 0;
+    cube_obj.num_indices            = indices.size();
+    cube_obj.rendering_mode         = GL_TRIANGLES;
+    cube_obj.vertex_array_object_id = vertex_array_object_id;
+    cube_obj.bbox_min               = glm::vec3(-1.0f, -1.0f, -1.0f);
+    cube_obj.bbox_max               = glm::vec3( 1.0f,  1.0f,  1.0f);
+    g_VirtualScene["the_cube"]      = cube_obj;
+
+    GLuint VBO_model_coefficients_id;
+    glGenBuffers(1, &VBO_model_coefficients_id);
+    glBindBuffer(GL_ARRAY_BUFFER, VBO_model_coefficients_id);
+    glBufferData(GL_ARRAY_BUFFER, model_coefficients.size() * sizeof(float), model_coefficients.data(), GL_STATIC_DRAW);
+    glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 0, 0);
+    glEnableVertexAttribArray(0);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+    GLuint VBO_normal_coefficients_id;
+    glGenBuffers(1, &VBO_normal_coefficients_id);
+    glBindBuffer(GL_ARRAY_BUFFER, VBO_normal_coefficients_id);
+    glBufferData(GL_ARRAY_BUFFER, normal_coefficients.size() * sizeof(float), normal_coefficients.data(), GL_STATIC_DRAW);
+    glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 0, 0);
+    glEnableVertexAttribArray(1);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+    GLuint VBO_texture_coefficients_id;
+    glGenBuffers(1, &VBO_texture_coefficients_id);
+    glBindBuffer(GL_ARRAY_BUFFER, VBO_texture_coefficients_id);
+    glBufferData(GL_ARRAY_BUFFER, texture_coefficients.size() * sizeof(float), texture_coefficients.data(), GL_STATIC_DRAW);
+    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 0, 0);
+    glEnableVertexAttribArray(2);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+    GLuint indices_id;
+    glGenBuffers(1, &indices_id);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indices_id);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(GLuint), indices.data(), GL_STATIC_DRAW);
+
+    glBindVertexArray(0);
+}
+
 // Carrega um Vertex Shader de um arquivo GLSL. Veja definição de LoadShader() abaixo.
 GLuint LoadShader_Vertex(const char* filename)
 {
@@ -1246,16 +1409,44 @@ void KeyCallback(GLFWwindow* window, int key, int scancode, int action, int mod)
         g_AngleZ += (mod & GLFW_MOD_SHIFT) ? -delta : delta;
     }
 
-    // Se o usuário apertar a tecla espaço, resetamos os ângulos de Euler para zero.
+    // Giro discreto de 90 graus para a esquerda (A ou Seta Esquerda)
+    if ((key == GLFW_KEY_A || key == GLFW_KEY_LEFT) && action == GLFW_PRESS)
+    {
+        TurnBall90Degrees(g_Ball, true);
+    }
+
+    // Giro discreto de 90 graus para a direita (D ou Seta Direita)
+    if ((key == GLFW_KEY_D || key == GLFW_KEY_RIGHT) && action == GLFW_PRESS)
+    {
+        TurnBall90Degrees(g_Ball, false);
+    }
+
+    // Salto com curva de Bézier cúbica e animação de deformação (squish)
     if (key == GLFW_KEY_SPACE && action == GLFW_PRESS)
     {
-        g_AngleX = 0.0f;
-        g_AngleY = 0.0f;
-        g_AngleZ = 0.0f;
-        g_ForearmAngleX = 0.0f;
-        g_ForearmAngleZ = 0.0f;
-        g_TorsoPositionX = 0.0f;
-        g_TorsoPositionY = 0.0f;
+        StartBallJump(g_Ball, g_KeyWPressed);
+    }
+
+    // Rotação orbital da câmera em 3ª pessoa pelas 4 direções fixas (Q e E)
+    if (key == GLFW_KEY_Q && action == GLFW_PRESS)
+    {
+        g_Ball.cam_orbit_quadrant = (g_Ball.cam_orbit_quadrant + 1) % 4;
+    }
+    if (key == GLFW_KEY_E && action == GLFW_PRESS)
+    {
+        g_Ball.cam_orbit_quadrant = (g_Ball.cam_orbit_quadrant + 3) % 4;
+    }
+
+    // Alterna entre os modos de câmera: 3ª Pessoa -> 1ª Pessoa -> Orbital Livre (Mouse)
+    if (key == GLFW_KEY_C && action == GLFW_PRESS)
+    {
+        g_CameraMode = (CameraMode)(((int)g_CameraMode + 1) % 3);
+    }
+
+    // Reinicia a posição da bola na plataforma inicial
+    if (key == GLFW_KEY_BACKSPACE && action == GLFW_PRESS)
+    {
+        ResetBallState(g_Ball);
     }
 
     // Se o usuário apertar a tecla P, utilizamos projeção perspectiva.
@@ -1366,6 +1557,42 @@ void TextRendering_ShowEulerAngles(GLFWwindow* window)
     snprintf(buffer, 80, "Euler Angles rotation matrix = Z(%.2f)*Y(%.2f)*X(%.2f)\n", g_AngleZ, g_AngleY, g_AngleX);
 
     TextRendering_PrintString(window, buffer, -1.0f+pad/10, -1.0f+2*pad/10, 1.0f);
+}
+
+// Exibe informações de estado da bola (velocidade, gravidade, salto Bézier, squish) e atalhos
+void TextRendering_ShowBallHUD(GLFWwindow* window)
+{
+    if ( !g_ShowInfoText )
+        return;
+
+    float pad = TextRendering_LineHeight(window);
+
+    const char* cam_names[3] = {
+        "3a Pessoa (Kula World)",
+        "1a Pessoa",
+        "Orbital Livre (Mouse)"
+    };
+
+    char line1[128];
+    snprintf(
+        line1, sizeof(line1),
+        "Controles: [W/S] Rolar | [A/D] Girar 90 deg | [SPACE] Saltar (Bezier) | [Q/E] Orbitar 4 dir | [C] Cam: %s | [BACKSPACE] Reset",
+        cam_names[(int)g_CameraMode]
+    );
+
+    char line2[128];
+    snprintf(
+        line2, sizeof(line2),
+        "Bloco:(%d,%d,%d) | Vel:%.2f m/s | Gravidade:(%+.0f,%+.0f,%+.0f) | Elev.Bezier:%.2f | Squish:(%.2f, %.2f)",
+        g_Ball.current_block.x, g_Ball.current_block.y, g_Ball.current_block.z,
+        g_Ball.speed,
+        -g_Ball.up.x, -g_Ball.up.y, -g_Ball.up.z,
+        g_Ball.jump_elevation,
+        g_Ball.squish_normal_scale, g_Ball.squish_tangent_scale
+    );
+
+    TextRendering_PrintString(window, line1, -1.0f + pad / 10.0f, -1.0f + 1.4f * pad, 0.85f);
+    TextRendering_PrintString(window, line2, -1.0f + pad / 10.0f, -1.0f + 0.3f * pad, 0.85f);
 }
 
 // Escrevemos na tela qual matriz de projeção está sendo utilizada.
