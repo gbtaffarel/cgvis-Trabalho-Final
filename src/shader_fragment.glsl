@@ -25,6 +25,8 @@ uniform mat4 projection;
 #define COIN   3
 #define KEY    4
 #define BANANA 5
+#define BLOCK  6
+#define SPIKES 7
 uniform int object_id;
 
 // Parâmetros da axis-aligned bounding box (AABB) do modelo
@@ -41,6 +43,10 @@ uniform sampler2D TextureImage5;
 uniform sampler2D TextureImage6;
 uniform sampler2D TextureImage7;
 uniform sampler2D TextureImage8;
+uniform sampler2D TextureImage9;
+uniform sampler2D TextureImage10;
+uniform sampler2D TextureImage11;
+uniform sampler2D TextureImage12;
 
 // O valor de saída ("out") de um Fragment Shader é a cor final do fragmento.
 out vec4 color;
@@ -139,18 +145,15 @@ void main()
     }
     else if ( object_id == PLANE )
     {
-        // Coordenadas de textura do plano, obtidas do arquivo OBJ.
         U = texcoords.x;
         V = texcoords.y;
 
-		// Obtemos a refletância difusa a partir da leitura da imagem TextureImage1
 		Kd0 = texture(TextureImage1, vec2(U,V)).rgb;
     } else if ( object_id == COIN )
     {
         U = texcoords.x;
         V = texcoords.y;
 
-		// Obtemos a refletância difusa a partir da leitura da imagem TextureImage1
 		Kd0 = texture(TextureImage2, vec2(U,V)).rgb;
         Ks0 = 2 * texture(TextureImage8, vec2(U,V)).rgb + vec3(0.5, 0.5, 0.5);
     } else if ( object_id == KEY )
@@ -158,7 +161,6 @@ void main()
         U = texcoords.x;
         V = texcoords.y;
 
-		// Obtemos a refletância difusa a partir da leitura da imagem TextureImage1
 		Kd0 = texture(TextureImage3, vec2(U,V)).rgb;
         Ks0 = 2 * texture(TextureImage8, vec2(U,V)).rgb + vec3(0.5, 0.5, 0.5); 
     } else if ( object_id == BANANA )
@@ -166,9 +168,23 @@ void main()
         U = texcoords.x;
         V = texcoords.y;
 
-		// Obtemos a refletância difusa a partir da leitura da imagem TextureImage1
 		Kd0 = texture(TextureImage7, vec2(U,V)).rgb;
         Ks0 = vec3(0.1, 0.1, 0.1);
+    } else if ( object_id == BLOCK )
+    {
+        U = texcoords.x;
+        V = texcoords.y;
+
+        n =  texture(TextureImage11, vec2(U,V));
+		Kd0 = texture(TextureImage10, vec2(U,V)).rgb;
+        Ks0 = .2 * texture(TextureImage12, vec2(U,V)).rgb;
+    } else if ( object_id == SPIKES )
+    {
+        U = texcoords.x;
+        V = texcoords.y;
+
+		Kd0 = texture(TextureImage9, vec2(U,V)).rgb;
+        Ks0 = vec3(0.3, 0.3, 0.3);
     }
 
     // Equação de Iluminação
