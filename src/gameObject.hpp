@@ -17,6 +17,7 @@ struct gameObject{
     char* name;
     transform transform;
     int objIndex; //Indice utlizado na definição de qual objeto será desenhado
+    bool active;
 };
 
 

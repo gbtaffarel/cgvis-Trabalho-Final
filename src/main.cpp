@@ -159,7 +159,9 @@ void CursorPosCallback(GLFWwindow* window, double xpos, double ypos);
 void ScrollCallback(GLFWwindow* window, double xoffset, double yoffset);
 
 void DisplaySampleObjects(glm::mat4 &model);
-gameObject BuildGameObject(int id, char * name, int objIndex);
+gameObject BuildGameObject(int id, char * name, int objIndex, int &totalSceneObjects);
+void SetObjectPosition(gameObject &obj, glm::vec3 pos);
+void SetObjectRotation(gameObject &obj, glm::vec3 rot);
 
 // Definimos uma estrutura que armazenará dados necessários para renderizar
 // cada objeto da cena virtual.
@@ -375,10 +377,17 @@ int main(int argc, char* argv[])
     glCullFace(GL_BACK);
     glFrontFace(GL_CCW);
 
+    int totalSceneObjects = 0;
     std::vector<gameObject> objects;
     char blockName[] = "the_block";
-    gameObject block = BuildGameObject(0, blockName, 6);
-    objects.push_back(block);
+    for(int j = -5; j < 5; j++){
+        for(int i = -5; i < 5; i++){
+            gameObject block = BuildGameObject(0, blockName, 6, totalSceneObjects);
+            objects.push_back(block);
+            SetObjectPosition(objects[totalSceneObjects -1], glm::vec3(i,0.0,j));
+        }
+    }
+    
 
     // Ficamos em um loop infinito, renderizando, até que o usuário feche a janela
     while (!glfwWindowShouldClose(window))
@@ -473,6 +482,7 @@ int main(int argc, char* argv[])
         if(displaySamples) DisplaySampleObjects(model);
 
         for (const gameObject& obj : objects) {
+            if(!obj.active) return 0;
             model = Matrix_Translate(obj.transform.position.x,
                                      obj.transform.position.y,
                                      obj.transform.position.z);
