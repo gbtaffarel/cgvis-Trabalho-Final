@@ -19,6 +19,8 @@
 #include <cstdio>
 #include <cstdlib>
 
+#include "gameObject.hpp"
+
 // Headers abaixo são específicos de C++
 #include <set>
 #include <map>
@@ -48,6 +50,9 @@
 // Headers locais, definidos na pasta "include/"
 #include "utils.h"
 #include "matrices.h"
+
+
+
 
 // Estrutura que representa um modelo geométrico carregado a partir de um
 // arquivo ".obj". Veja https://en.wikipedia.org/wiki/Wavefront_.obj_file .
@@ -154,8 +159,7 @@ void CursorPosCallback(GLFWwindow* window, double xpos, double ypos);
 void ScrollCallback(GLFWwindow* window, double xoffset, double yoffset);
 
 void DisplaySampleObjects(glm::mat4 &model);
-
-
+gameObject BuildGameObject(int id, char * name, int objIndex);
 
 // Definimos uma estrutura que armazenará dados necessários para renderizar
 // cada objeto da cena virtual.
@@ -246,7 +250,7 @@ int main(int argc, char* argv[])
 
     // Definimos o callback para impressão de erros da GLFW no terminal
     glfwSetErrorCallback(ErrorCallback);
-
+    
     // Pedimos para utilizar OpenGL versão 3.3 (ou superior)
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
@@ -371,10 +375,17 @@ int main(int argc, char* argv[])
     glCullFace(GL_BACK);
     glFrontFace(GL_CCW);
 
+    std::vector<gameObject> objects;
+    char blockName[] = "the_block";
+    gameObject block = BuildGameObject(0, blockName, 6);
+    objects.push_back(block);
 
     // Ficamos em um loop infinito, renderizando, até que o usuário feche a janela
     while (!glfwWindowShouldClose(window))
     {
+        
+
+
         // Aqui executamos as operações de renderização
 
         // Definimos a cor do "fundo" do framebuffer como branco.  Tal cor é
@@ -461,6 +472,15 @@ int main(int argc, char* argv[])
 
         if(displaySamples) DisplaySampleObjects(model);
 
+        for (const gameObject& obj : objects) {
+            model = Matrix_Translate(obj.transform.position.x,
+                                     obj.transform.position.y,
+                                     obj.transform.position.z);
+            glUniformMatrix4fv(g_model_uniform, 1 , GL_FALSE , glm::value_ptr(model));
+            glUniform1i(g_object_id_uniform, obj.objIndex);
+            DrawVirtualObject(obj.name);
+        }
+
         // Imprimimos na tela os ângulos de Euler que controlam a rotação do
         // terceiro cubo.
         TextRendering_ShowEulerAngles(window);
@@ -485,6 +505,9 @@ int main(int argc, char* argv[])
         // definidas anteriormente usando glfwSet*Callback() serão chamadas
         // pela biblioteca GLFW.
         glfwPollEvents();
+
+
+
     }
 
     // Finalizamos o uso dos recursos do sistema operacional
