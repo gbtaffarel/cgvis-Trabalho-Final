@@ -162,6 +162,9 @@ void DisplaySampleObjects(glm::mat4 &model);
 gameObject BuildGameObject(int id, char * name, int objIndex, int &totalSceneObjects);
 void SetObjectPosition(gameObject &obj, glm::vec3 pos);
 void SetObjectRotation(gameObject &obj, glm::vec3 rot);
+void MoveObject(gameObject &obj, glm::vec3 mov);
+void RotateObject(gameObject &obj, glm::vec3 rot);
+
 
 // Definimos uma estrutura que armazenará dados necessários para renderizar
 // cada objeto da cena virtual.
@@ -481,14 +484,20 @@ int main(int argc, char* argv[])
 
         if(displaySamples) DisplaySampleObjects(model);
 
-        for (const gameObject& obj : objects) {
-            if(!obj.active) return 0;
-            model = Matrix_Translate(obj.transform.position.x,
-                                     obj.transform.position.y,
-                                     obj.transform.position.z);
-            glUniformMatrix4fv(g_model_uniform, 1 , GL_FALSE , glm::value_ptr(model));
-            glUniform1i(g_object_id_uniform, obj.objIndex);
-            DrawVirtualObject(obj.name);
+        //Desenha cada um dos gameObjects na cena
+        for (gameObject& obj : objects) {
+            if(obj.active){
+                model = Matrix_Translate(obj.transform.position.x,
+                                        obj.transform.position.y,
+                                        obj.transform.position.z)
+                *Matrix_Rotate_X(obj.transform.rotation.x)
+                *Matrix_Rotate_Y(obj.transform.rotation.y)
+                *Matrix_Rotate_Z(obj.transform.rotation.z);
+                glUniformMatrix4fv(g_model_uniform, 1 , GL_FALSE , glm::value_ptr(model));
+                glUniform1i(g_object_id_uniform, obj.objIndex);
+                DrawVirtualObject(obj.name);
+            }
+            
         }
 
         // Imprimimos na tela os ângulos de Euler que controlam a rotação do

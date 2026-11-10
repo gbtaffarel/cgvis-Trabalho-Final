@@ -23,3 +23,10 @@ void SetObjectRotation(gameObject &obj, glm::vec3 rot){
     obj.transform.rotation = rot;
 }
 
+void MoveObject(gameObject &obj, glm::vec3 mov){
+    obj.transform.position += mov;
+}
+
+void RotateObject(gameObject &obj, glm::vec3 rot){
+    obj.transform.rotation += rot;
+}
