@@ -22,6 +22,11 @@ uniform mat4 projection;
 #define SPHERE 0
 #define BUNNY  1
 #define PLANE  2
+#define COIN   3
+#define KEY    4
+#define BANANA 5
+#define BLOCK  6
+#define SPIKES 7
 uniform int object_id;
 
 // Parâmetros da axis-aligned bounding box (AABB) do modelo
@@ -32,6 +37,16 @@ uniform vec4 bbox_max;
 uniform sampler2D TextureImage0;
 uniform sampler2D TextureImage1;
 uniform sampler2D TextureImage2;
+uniform sampler2D TextureImage3;
+uniform sampler2D TextureImage4;
+uniform sampler2D TextureImage5;
+uniform sampler2D TextureImage6;
+uniform sampler2D TextureImage7;
+uniform sampler2D TextureImage8;
+uniform sampler2D TextureImage9;
+uniform sampler2D TextureImage10;
+uniform sampler2D TextureImage11;
+uniform sampler2D TextureImage12;
 
 // O valor de saída ("out") de um Fragment Shader é a cor final do fragmento.
 out vec4 color;
@@ -59,8 +74,8 @@ void main()
     vec4 n = normalize(normal);
 
     // Vetor que define o sentido da fonte de luz em relação ao ponto atual.
-    vec4 l = normalize(vec4(1.0,1.0,0.0,0.0));
-
+    vec4 l = normalize(vec4(0.2,0.2,0.2,0.0));
+    vec4 r = -l + (2*n *(dot(n, l)));
     // Vetor que define o sentido da câmera em relação ao ponto atual.
     vec4 v = normalize(camera_position - p);
 
@@ -70,6 +85,7 @@ void main()
 
 	// Coeficiente de refletância difusa
 	vec3 Kd0;
+    vec3 Ks0 = vec3(0.0, 0.0, 0.0);
 
     if ( object_id == SPHERE )
     {
@@ -97,7 +113,9 @@ void main()
         V = (phi + M_PI_2) / M_PI;
 
 		// Obtemos a refletância difusa a partir da leitura da imagem TextureImage0
-		Kd0 = texture(TextureImage0, vec2(U,V)).rgb;
+		Kd0 = texture(TextureImage5, vec2(U,V)).rgb * vec3(0.1, 0.6, 0.1);
+        n =  5 * texture(TextureImage4, vec2(U,V));
+        Ks0 = 1 * texture(TextureImage8, vec2(U,V)).rgb;
     }
     else if ( object_id == BUNNY )
     {
@@ -127,18 +145,53 @@ void main()
     }
     else if ( object_id == PLANE )
     {
-        // Coordenadas de textura do plano, obtidas do arquivo OBJ.
         U = texcoords.x;
         V = texcoords.y;
 
-		// Obtemos a refletância difusa a partir da leitura da imagem TextureImage1
 		Kd0 = texture(TextureImage1, vec2(U,V)).rgb;
+    } else if ( object_id == COIN )
+    {
+        U = texcoords.x;
+        V = texcoords.y;
+
+		Kd0 = texture(TextureImage2, vec2(U,V)).rgb;
+        Ks0 = 2 * texture(TextureImage8, vec2(U,V)).rgb + vec3(0.5, 0.5, 0.5);
+    } else if ( object_id == KEY )
+    {
+        U = texcoords.x;
+        V = texcoords.y;
+
+		Kd0 = texture(TextureImage3, vec2(U,V)).rgb;
+        Ks0 = 2 * texture(TextureImage8, vec2(U,V)).rgb + vec3(0.5, 0.5, 0.5); 
+    } else if ( object_id == BANANA )
+    {
+        U = texcoords.x;
+        V = texcoords.y;
+
+		Kd0 = texture(TextureImage7, vec2(U,V)).rgb;
+        Ks0 = vec3(0.1, 0.1, 0.1);
+    } else if ( object_id == BLOCK )
+    {
+        U = texcoords.x;
+        V = texcoords.y;
+
+        n =  texture(TextureImage11, vec2(U,V));
+		Kd0 = texture(TextureImage10, vec2(U,V)).rgb;
+        Ks0 = .2 * texture(TextureImage12, vec2(U,V)).rgb;
+    } else if ( object_id == SPIKES )
+    {
+        U = texcoords.x;
+        V = texcoords.y;
+
+		Kd0 = texture(TextureImage9, vec2(U,V)).rgb;
+        Ks0 = vec3(0.3, 0.3, 0.3);
     }
 
     // Equação de Iluminação
     float lambert = max(0,dot(n,l));
-
-    color.rgb = Kd0 * (lambert + 0.01);
+    float phong = max(0, dot(r, v));
+    vec3 ambient = vec3(0.02, 0.02, 0.025);
+    color.rgb = Kd0 * (lambert + 0.01) + (Ks0 * phong) + ambient;
 
     // NOTE: Se você quiser fazer o rendering de objetos transparentes, é
     // necessário:
