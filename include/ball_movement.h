@@ -92,6 +92,7 @@ struct BallState
     bool  is_jumping;
     float jump_timer;           // Tempo decorrido no salto atual
     float jump_elevation;       // Elevação atual calculada pela Bézier cúbica
+    float jump_distance_remaining;
 
     // Estado de queda livre (quando sai das plataformas sem bloco abaixo)
     bool      is_falling;
@@ -246,6 +247,7 @@ inline void ResetBallState(BallState& ball)
     ball.is_jumping           = false;
     ball.jump_timer           = 0.0f;
     ball.jump_elevation       = 0.0f;
+    ball.jump_distance_remaining = 0.0f;
 
     ball.is_falling           = false;
     ball.fall_speed           = 0.0f;
@@ -292,8 +294,8 @@ inline void TurnBall90Degrees(BallState& ball, bool turn_left)
         ball.forward = SnapToAxis(right);
 }
 
-// Inicia um salto (quando no chão)
-inline void StartBallJump(BallState& ball, bool forward_key_held)
+// Inicia um salto que percorre dois blocos para frente.
+inline void StartBallJump(BallState& ball)
 {
     if (ball.is_jumping || ball.is_wrapping_edge || ball.is_falling)
         return;
@@ -302,10 +304,9 @@ inline void StartBallJump(BallState& ball, bool forward_key_held)
     ball.jump_timer     = 0.0f;
     ball.jump_elevation = 0.0f;
     ball.landing_timer  = 0.0f;
-
-    // Se o jogador estiver segurando W ao saltar, garante velocidade horizontal suficiente para cruzar um bloco
-    if (forward_key_held && ball.speed < 0.88f * BALL_MAX_SPEED)
-        ball.speed = 0.88f * BALL_MAX_SPEED;
+    ball.step_distance_remaining = 0.0f;
+    ball.jump_distance_remaining = 2.0f * BLOCK_SIZE;
+    ball.speed = ball.jump_distance_remaining / JUMP_DURATION;
 }
 
 // Atualiza o fator de deformação (squish) durante o salto e no impacto do pouso
@@ -425,7 +426,7 @@ inline void UpdateBallPhysics(
 
     // Cada pressionamento de avanço inicia um movimento até o centro da próxima face.
     if (key_w_pressed && ball.step_distance_remaining <= 1e-6f
-        && !ball.is_wrapping_edge && !ball.is_falling)
+        && !ball.is_jumping && !ball.is_wrapping_edge && !ball.is_falling)
     {
         GridCoord wall_block = OffsetGrid(ball.current_block, ball.forward + ball.up);
         GridCoord next_block = OffsetGrid(ball.current_block, ball.forward);
@@ -529,8 +530,12 @@ inline void UpdateBallPhysics(
     }
     else
     {
-        // 3. Atualização da velocidade linear com aceleração/atrito baseados em dt
-        if (ball.step_distance_remaining > 1e-6f)
+        // 3. Atualização da velocidade linear para passos, salto, frenagem e atrito
+        if (ball.is_jumping)
+        {
+            ball.speed = (2.0f * BLOCK_SIZE) / JUMP_DURATION;
+        }
+        else if (ball.step_distance_remaining > 1e-6f)
         {
             ball.speed = BALL_MAX_SPEED;
         }
@@ -546,6 +551,7 @@ inline void UpdateBallPhysics(
         ball.speed = std::max(0.0f, ball.speed);
 
         // 4. Atualização do salto com curva de Bézier cúbica
+        bool jump_finished = false;
         if (ball.is_jumping)
         {
             ball.jump_timer += dt;
@@ -553,44 +559,8 @@ inline void UpdateBallPhysics(
 
             if (t >= 1.0f)
             {
-                ball.is_jumping     = false;
-                ball.jump_timer     = 0.0f;
+                jump_finished = true;
                 ball.jump_elevation = 0.0f;
-
-                // Ao pousar, verificamos se existe bloco sob a bola
-                if (HasBlockAt(ball.current_block))
-                {
-                    ball.landing_timer = LAND_SQUISH_TIME;
-                }
-                else
-                {
-                    // Verifica se a borda da bola ainda toca o bloco anterior ou próximo
-                    glm::vec4 right = crossproduct(ball.forward, ball.up);
-                    float sf = dotproduct(ball.surface_offset, ball.forward);
-                    GridCoord neighbor_f = OffsetGrid(ball.current_block, ball.forward);
-                    GridCoord neighbor_b = OffsetGrid(ball.current_block, -ball.forward);
-
-                    if (sf > BLOCK_HALF - BALL_RADIUS && HasBlockAt(neighbor_f))
-                    {
-                        ball.current_block  = neighbor_f;
-                        ball.surface_offset = (sf - BLOCK_SIZE) * ball.forward
-                                            + dotproduct(ball.surface_offset, right) * right;
-                        ball.landing_timer  = LAND_SQUISH_TIME;
-                    }
-                    else if (sf < -BLOCK_HALF + BALL_RADIUS && HasBlockAt(neighbor_b))
-                    {
-                        ball.current_block  = neighbor_b;
-                        ball.surface_offset = (sf + BLOCK_SIZE) * ball.forward
-                                            + dotproduct(ball.surface_offset, right) * right;
-                        ball.landing_timer  = LAND_SQUISH_TIME;
-                    }
-                    else
-                    {
-                        ball.is_falling    = true;
-                        ball.fall_speed    = 0.0f;
-                        ball.fall_distance = 0.0f;
-                    }
-                }
             }
             else
             {
@@ -610,7 +580,17 @@ inline void UpdateBallPhysics(
 
         // 5. Deslocamento tangencial e transições de superfície/gravidade
         float ds = ball.speed * dt;
-        if (ball.step_distance_remaining > 1e-6f)
+        if (ball.is_jumping)
+        {
+            ds = std::min(ds, ball.jump_distance_remaining);
+            ball.jump_distance_remaining -= ds;
+            if (ball.jump_distance_remaining <= 1e-6f)
+            {
+                ball.jump_distance_remaining = 0.0f;
+                ball.speed = 0.0f;
+            }
+        }
+        else if (ball.step_distance_remaining > 1e-6f)
         {
             ds = std::min(ds, ball.step_distance_remaining);
             ball.step_distance_remaining -= ds;
@@ -644,40 +624,19 @@ inline void UpdateBallPhysics(
             GridCoord next_block = OffsetGrid(ball.current_block, move_dir);
 
             // CASO A: Parede interna à frente (canto côncavo de 90°)
-            if (HasBlockAt(wall_block) && s_move >= (BLOCK_HALF - BALL_RADIUS))
+            if (!ball.is_jumping && HasBlockAt(wall_block)
+                && s_move >= (BLOCK_HALF - BALL_RADIUS))
             {
-                // Se estiver no ar perto do topo da parede e não houver bloco acima dela, pousa no topo da parede
-                GridCoord above_wall = OffsetGrid(wall_block, ball.up);
-                if (ball.is_jumping && ball.jump_elevation > 0.95f * BLOCK_SIZE && !HasBlockAt(above_wall))
-                {
-                    if (s_move > BLOCK_HALF)
-                    {
-                        ball.current_block  = wall_block;
-                        ball.surface_offset = (s_move - BLOCK_SIZE) * move_dir + new_s_lat * right;
-                        ball.is_jumping     = false;
-                        ball.jump_timer     = 0.0f;
-                        ball.jump_elevation = 0.0f;
-                        ball.landing_timer  = LAND_SQUISH_TIME;
-                    }
-                }
-                else
-                {
-                    // Transição côncava: a bola adere à parede e reorienta a gravidade para -new_up
-                    float excess        = s_move - (BLOCK_HALF - BALL_RADIUS);
-                    glm::vec4 new_up    = SnapToAxis(-move_dir);
-                    glm::vec4 new_m_dir = SnapToAxis(ball.up);
+                // Transição côncava: a bola adere à parede e reorienta a gravidade para -new_up
+                float excess        = s_move - (BLOCK_HALF - BALL_RADIUS);
+                glm::vec4 new_up    = SnapToAxis(-move_dir);
+                glm::vec4 new_m_dir = SnapToAxis(ball.up);
+                float start_coord   = -(BLOCK_HALF - BALL_RADIUS) + excess;
 
-                    // Se estava saltando, projeta a elevação na nova coordenada ao longo da parede
-                    float start_coord   = -(BLOCK_HALF - BALL_RADIUS) + excess + ball.jump_elevation;
-                    ball.is_jumping     = false;
-                    ball.jump_timer     = 0.0f;
-                    ball.jump_elevation = 0.0f;
-
-                    ball.current_block  = wall_block;
-                    ball.up             = new_up;
-                    ball.forward        = (move_sign > 0) ? new_m_dir : -new_m_dir;
-                    ball.surface_offset = start_coord * new_m_dir + new_s_lat * right;
-                }
+                ball.current_block  = wall_block;
+                ball.up             = new_up;
+                ball.forward        = (move_sign > 0) ? new_m_dir : -new_m_dir;
+                ball.surface_offset = start_coord * new_m_dir + new_s_lat * right;
             }
             // CASO B: Passou da borda do bloco atual (s_move > BLOCK_HALF)
             else if (s_move > BLOCK_HALF)
@@ -717,6 +676,49 @@ inline void UpdateBallPhysics(
             glm::vec4 u_inst = std::cos(ball.wrap_angle) * ball.wrap_start_up
                              + std::sin(ball.wrap_angle) * ball.wrap_move_dir;
             ball.position_world = ball.wrap_pivot + BALL_RADIUS * u_inst;
+        }
+
+        if (jump_finished)
+        {
+            ball.is_jumping = false;
+            ball.jump_timer = 0.0f;
+            ball.jump_elevation = 0.0f;
+            ball.jump_distance_remaining = 0.0f;
+            ball.step_distance_remaining = 0.0f;
+            ball.speed = 0.0f;
+
+            if (HasBlockAt(ball.current_block))
+            {
+                ball.landing_timer = LAND_SQUISH_TIME;
+            }
+            else
+            {
+                glm::vec4 right = crossproduct(ball.forward, ball.up);
+                float sf = dotproduct(ball.surface_offset, ball.forward);
+                GridCoord neighbor_f = OffsetGrid(ball.current_block, ball.forward);
+                GridCoord neighbor_b = OffsetGrid(ball.current_block, -ball.forward);
+
+                if (sf > BLOCK_HALF - BALL_RADIUS && HasBlockAt(neighbor_f))
+                {
+                    ball.current_block  = neighbor_f;
+                    ball.surface_offset = (sf - BLOCK_SIZE) * ball.forward
+                                        + dotproduct(ball.surface_offset, right) * right;
+                    ball.landing_timer  = LAND_SQUISH_TIME;
+                }
+                else if (sf < -BLOCK_HALF + BALL_RADIUS && HasBlockAt(neighbor_b))
+                {
+                    ball.current_block  = neighbor_b;
+                    ball.surface_offset = (sf + BLOCK_SIZE) * ball.forward
+                                        + dotproduct(ball.surface_offset, right) * right;
+                    ball.landing_timer  = LAND_SQUISH_TIME;
+                }
+                else
+                {
+                    ball.is_falling    = true;
+                    ball.fall_speed    = 0.0f;
+                    ball.fall_distance = 0.0f;
+                }
+            }
         }
     }
 

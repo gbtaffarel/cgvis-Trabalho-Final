@@ -1426,7 +1426,7 @@ void KeyCallback(GLFWwindow* window, int key, int scancode, int action, int mod)
     // Salto com curva de Bézier cúbica e animação de deformação (squish)
     if (key == GLFW_KEY_SPACE && action == GLFW_PRESS)
     {
-        StartBallJump(g_Ball, g_KeyWPressed);
+        StartBallJump(g_Ball);
     }
 
     // Rotação orbital da câmera em 3ª pessoa pelas 4 direções fixas (Q e E)
