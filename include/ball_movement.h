@@ -76,6 +76,7 @@ struct BallState
 
     // Velocidade escalar ao longo do vetor forward
     float speed;
+    float step_distance_remaining;
 
     // Matriz de rotação acumulada pelo rolamento físico (Delta theta = Delta S / R)
     glm::mat4 rotation_matrix;
@@ -233,6 +234,7 @@ inline void ResetBallState(BallState& ball)
     ball.forward              = glm::vec4(0.0f, 0.0f, -1.0f, 0.0f);
     ball.surface_offset       = glm::vec4(0.0f, 0.0f, 0.0f, 0.0f);
     ball.speed                = 0.0f;
+    ball.step_distance_remaining = 0.0f;
     ball.rotation_matrix      = Matrix_Identity();
 
     ball.is_wrapping_edge     = false;
@@ -422,6 +424,27 @@ inline void UpdateBallPhysics(
     if (dt <= 0.0f)
         return;
 
+    // Cada pressionamento de avanço inicia um movimento até o centro da próxima face.
+    if (key_w_pressed && ball.step_distance_remaining <= 1e-6f
+        && !ball.is_wrapping_edge && !ball.is_falling)
+    {
+        GridCoord wall_block = OffsetGrid(ball.current_block, ball.forward + ball.up);
+        GridCoord next_block = OffsetGrid(ball.current_block, ball.forward);
+        if (HasBlockAt(wall_block))
+        {
+            ball.step_distance_remaining = 2.0f * (BLOCK_HALF - BALL_RADIUS);
+        }
+        else if (!ball.is_jumping && !HasBlockAt(next_block))
+        {
+            ball.step_distance_remaining = BLOCK_SIZE
+                + (3.14159265f / 2.0f) * BALL_RADIUS;
+        }
+        else
+        {
+            ball.step_distance_remaining = BLOCK_SIZE;
+        }
+    }
+
     // 1. Caso de queda livre fora das plataformas
     if (ball.is_falling)
     {
@@ -460,7 +483,18 @@ inline void UpdateBallPhysics(
     if (ball.is_wrapping_edge)
     {
         float wrap_vel = std::max( std::fabs(ball.speed), BALL_WRAP_SPEED );
-        float ds       = wrap_vel * dt;
+        float ds       = (ball.step_distance_remaining > 1e-6f)
+            ? std::min(BALL_MAX_SPEED * dt, ball.step_distance_remaining)
+            : wrap_vel * dt;
+        if (ball.step_distance_remaining > 1e-6f)
+        {
+            ball.step_distance_remaining -= ds;
+            if (ball.step_distance_remaining <= 1e-6f)
+            {
+                ball.step_distance_remaining = 0.0f;
+                ball.speed = 0.0f;
+            }
+        }
         float d_alpha  = ds / BALL_RADIUS;
 
         ball.wrap_angle += d_alpha;
@@ -497,11 +531,9 @@ inline void UpdateBallPhysics(
     else
     {
         // 3. Atualização da velocidade linear com aceleração/atrito baseados em dt
-        if (key_w_pressed)
+        if (ball.step_distance_remaining > 1e-6f)
         {
-            ball.speed += BALL_ACCEL * dt;
-            if (ball.speed > BALL_MAX_SPEED)
-                ball.speed = BALL_MAX_SPEED;
+            ball.speed = BALL_MAX_SPEED;
         }
         else if (key_s_pressed)
         {
@@ -584,6 +616,16 @@ inline void UpdateBallPhysics(
 
         // 5. Deslocamento tangencial e transições de superfície/gravidade
         float ds = ball.speed * dt;
+        if (ball.step_distance_remaining > 1e-6f)
+        {
+            ds = std::min(ds, ball.step_distance_remaining);
+            ball.step_distance_remaining -= ds;
+            if (ball.step_distance_remaining <= 1e-6f)
+            {
+                ball.step_distance_remaining = 0.0f;
+                ball.speed = 0.0f;
+            }
+        }
         if (std::fabs(ds) > 1e-6f)
         {
             int move_sign      = (ds >= 0.0f) ? 1 : -1;

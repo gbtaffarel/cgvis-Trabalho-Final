@@ -358,14 +358,16 @@ int main(int argc, char* argv[])
         float dt = current_time - prev_time;
         prev_time = current_time;
 
-        // Leitura contínua das teclas de avanço/frenagem (W/S ou Setas Cima/Baixo)
-        g_KeyWPressed = (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
-                     || (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS);
+        // Avanço por pressionamento; frenagem continua sendo lida enquanto a tecla estiver pressionada.
+        bool key_w_down = (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
+                       || (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS);
+        bool key_w_pressed = key_w_down && !g_KeyWPressed;
+        g_KeyWPressed = key_w_down;
         g_KeySPressed = (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
                      || (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS);
 
         // Atualizamos a física de rolamento, salto Bézier, deformação (squish) e gravidade dinâmica
-        UpdateBallPhysics(g_Ball, dt, g_KeyWPressed, g_KeySPressed);
+        UpdateBallPhysics(g_Ball, dt, key_w_pressed, g_KeySPressed);
 
         // Aqui executamos as operações de renderização
 
