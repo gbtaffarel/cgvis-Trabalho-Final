@@ -89,6 +89,7 @@ struct BallState
     int       wrap_move_sign;   // +1 se movendo para frente, -1 se para trás
 
     // Estado do salto com curva de Bézier cúbica
+    bool  jump_requested;
     bool  is_jumping;
     float jump_timer;           // Tempo decorrido no salto atual
     float jump_elevation;       // Elevação atual calculada pela Bézier cúbica
@@ -244,6 +245,7 @@ inline void ResetBallState(BallState& ball)
     ball.wrap_move_dir        = ball.forward;
     ball.wrap_move_sign       = 1;
 
+    ball.jump_requested       = false;
     ball.is_jumping           = false;
     ball.jump_timer           = 0.0f;
     ball.jump_elevation       = 0.0f;
@@ -283,7 +285,8 @@ inline void AccumulateRollingRotation(BallState& ball, glm::vec4 surface_normal,
 // Gira a direção da bola em +90 graus (esquerda) ou -90 graus (direita) em torno da normal atual
 inline void TurnBall90Degrees(BallState& ball, bool turn_left)
 {
-    if (ball.is_wrapping_edge || ball.is_falling)
+    if (ball.is_jumping || ball.is_wrapping_edge || ball.is_falling
+        || ball.step_distance_remaining > 1e-6f || ball.speed > 1e-6f)
         return;
 
     // Vetor direita atual na superfície: right = forward x up
@@ -297,9 +300,17 @@ inline void TurnBall90Degrees(BallState& ball, bool turn_left)
 // Inicia um salto que percorre dois blocos para frente.
 inline void StartBallJump(BallState& ball)
 {
-    if (ball.is_jumping || ball.is_wrapping_edge || ball.is_falling)
+    if (ball.is_jumping || ball.is_falling)
         return;
 
+    if (ball.is_wrapping_edge || ball.step_distance_remaining > 1e-6f
+        || ball.speed > 1e-6f)
+    {
+        ball.jump_requested = true;
+        return;
+    }
+
+    ball.jump_requested = false;
     ball.is_jumping     = true;
     ball.jump_timer     = 0.0f;
     ball.jump_elevation = 0.0f;
@@ -720,6 +731,13 @@ inline void UpdateBallPhysics(
                 }
             }
         }
+    }
+
+    if (ball.jump_requested && !ball.is_jumping && !ball.is_wrapping_edge
+        && !ball.is_falling && ball.step_distance_remaining <= 1e-6f
+        && ball.speed <= 1e-6f)
+    {
+        StartBallJump(ball);
     }
 
     // 6. Atualiza a animação de deformação (squish)
