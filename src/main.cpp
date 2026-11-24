@@ -1578,7 +1578,7 @@ void TextRendering_ShowBallHUD(GLFWwindow* window)
     char line1[128];
     snprintf(
         line1, sizeof(line1),
-        "Controles: [W/S] Rolar | [A/D] Girar 90 deg | [SPACE] Saltar (Bezier) | [Q/E] Orbitar 4 dir | [C] Cam: %s | [BACKSPACE] Reset",
+        "Controles: [W/UP] Avancar | [S/DOWN] Frear | [A/D] Girar 90 deg | [SPACE] Saltar (Bezier) | [Q/E] Orbitar 4 dir | [C] Cam: %s | [BACKSPACE] Reset",
         cam_names[(int)g_CameraMode]
     );
 

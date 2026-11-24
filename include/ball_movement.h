@@ -19,7 +19,6 @@ const float BALL_RADIUS      = 0.42f; // Raio da bola
 
 // Parâmetros cinemáticos baseados no tempo (Delta t)
 const float BALL_MAX_SPEED   = 4.2f;  // Velocidade máxima de rolamento (unidades/s)
-const float BALL_ACCEL       = 9.5f;  // Aceleração ao pressionar W (unidades/s^2)
 const float BALL_BRAKE_ACCEL = 18.0f; // Desaceleração de frenagem ao pressionar S
 const float BALL_FRICTION    = 8.0f;  // Desaceleração natural por atrito ao soltar teclas
 const float BALL_WRAP_SPEED  = 3.2f;  // Velocidade mínima durante transição de borda convexa
@@ -537,19 +536,14 @@ inline void UpdateBallPhysics(
         }
         else if (key_s_pressed)
         {
-            if (ball.speed > 0.0f)
-                ball.speed = std::max(0.0f, ball.speed - BALL_BRAKE_ACCEL * dt);
-            else
-                ball.speed = std::max(-0.55f * BALL_MAX_SPEED, ball.speed - 0.6f * BALL_ACCEL * dt);
+            ball.speed = std::max(0.0f, ball.speed - BALL_BRAKE_ACCEL * dt);
         }
         else if (!ball.is_jumping)
         {
             // Desaceleração natural por atrito quando no chão
-            if (ball.speed > 0.0f)
-                ball.speed = std::max(0.0f, ball.speed - BALL_FRICTION * dt);
-            else if (ball.speed < 0.0f)
-                ball.speed = std::min(0.0f, ball.speed + BALL_FRICTION * dt);
+            ball.speed = std::max(0.0f, ball.speed - BALL_FRICTION * dt);
         }
+        ball.speed = std::max(0.0f, ball.speed);
 
         // 4. Atualização do salto com curva de Bézier cúbica
         if (ball.is_jumping)
