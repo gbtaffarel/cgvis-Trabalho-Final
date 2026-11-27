@@ -156,6 +156,10 @@ void MouseButtonCallback(GLFWwindow* window, int button, int action, int mods);
 void CursorPosCallback(GLFWwindow* window, double xpos, double ypos);
 void ScrollCallback(GLFWwindow* window, double xoffset, double yoffset);
 
+void DisplaySampleObjects(glm::mat4 &model);
+
+
+
 // Definimos uma estrutura que armazenará dados necessários para renderizar
 // cada objeto da cena virtual.
 struct SceneObject
@@ -233,6 +237,9 @@ BallState  g_Ball;
 CameraMode g_CameraMode   = CAMERA_THIRD_PERSON;
 bool       g_KeyWPressed  = false;
 bool       g_KeySPressed  = false;
+// Variáveis para debug
+bool displaySamples = false;
+
 
 int main(int argc, char* argv[])
 {
@@ -308,19 +315,30 @@ int main(int argc, char* argv[])
     LoadShadersFromFiles();
 
     // Carregamos duas imagens para serem utilizadas como textura
-    LoadTextureImage("../../data/red_brick_diff_1k.jpg");      // TextureImage0
-    LoadTextureImage("../../data/rocky_terrain_02_diff_1k.jpg"); // TextureImage1
+    LoadTextureImage("../../data/texture/red_brick_diff_1k.jpg");      // TextureImage0
+    LoadTextureImage("../../data/texture/rocky_terrain_02_diff_1k.jpg"); // TextureImage1
+    LoadTextureImage("../../data/texture/coin_diff_1k.png"); // TextureImage2
+    LoadTextureImage("../../data/texture/key_diff_1k.png"); // TextureImage3
+    LoadTextureImage("../../data/texture/RoadLines021A_1K-PNG_NormalGL.png"); // TextureImage4
+    LoadTextureImage("../../data/texture/RoadLines021A_1K-PNG_Roughness.png"); // TextureImage5
+    LoadTextureImage("../../data/texture/RoadLines021A.png"); // TextureImage6
+    LoadTextureImage("../../data/texture/banana_diff_1k.png"); // TextureImage7
+    LoadTextureImage("../../data/texture/Metal055A_1K-JPG_Roughness.jpg"); // TextureImage8
+    LoadTextureImage("../../data/texture/spikes_diff_1k.jpeg"); // TextureImage9
+    LoadTextureImage("../../data/texture/Ground097_1K-PNG_Color.png"); // TextureImage10
+    LoadTextureImage("../../data/texture/Ground097_1K-PNG_NormalGL.png"); // TextureImage11
+    LoadTextureImage("../../data/texture/Ground097_1K-PNG_Roughness.png"); // TextureImage12
 
     // Construímos a representação de objetos geométricos através de malhas de triângulos
-    ObjModel spheremodel("../../data/sphere.obj");
+    ObjModel spheremodel("../../data/obj/sphere.obj");
     ComputeNormals(&spheremodel);
     BuildTrianglesAndAddToVirtualScene(&spheremodel);
 
-    ObjModel bunnymodel("../../data/bunny.obj");
+    ObjModel bunnymodel("../../data/obj/bunny.obj");
     ComputeNormals(&bunnymodel);
     BuildTrianglesAndAddToVirtualScene(&bunnymodel);
 
-    ObjModel planemodel("../../data/plane.obj");
+    ObjModel planemodel("../../data/obj/plane.obj");
     ComputeNormals(&planemodel);
     BuildTrianglesAndAddToVirtualScene(&planemodel);
 
@@ -330,6 +348,25 @@ int main(int argc, char* argv[])
     // Inicializamos os blocos do nível de teste e o estado inicial da bola
     InitLevelBlocks();
     ResetBallState(g_Ball);
+    ObjModel coinmodel("../../data/obj/coin.obj");
+    ComputeNormals(&coinmodel);
+    BuildTrianglesAndAddToVirtualScene(&coinmodel);
+
+    ObjModel keymodel("../../data/obj/key.obj");
+    ComputeNormals(&keymodel);
+    BuildTrianglesAndAddToVirtualScene(&keymodel);
+
+    ObjModel bananamodel("../../data/obj/banana.obj");
+    ComputeNormals(&bananamodel);
+    BuildTrianglesAndAddToVirtualScene(&bananamodel);
+
+    ObjModel blockmodel("../../data/obj/block.obj");
+    ComputeNormals(&blockmodel);
+    BuildTrianglesAndAddToVirtualScene(&blockmodel);
+
+    ObjModel spikesmodel("../../data/obj/spikes.obj");
+    ComputeNormals(&spikesmodel);
+    BuildTrianglesAndAddToVirtualScene(&spikesmodel);
 
     if ( argc > 1 )
     {
@@ -467,6 +504,11 @@ int main(int argc, char* argv[])
         #define SPHERE 0
         #define BUNNY  1
         #define PLANE  2
+        #define COIN   3
+        #define KEY    4
+        #define BANANA 5
+        #define BLOCK  6
+        #define SPIKES 7
 
         // Desenhamos todos os blocos 3D das plataformas do nível
         for (const GridCoord& blk : GetLevelBlocks())
@@ -497,6 +539,11 @@ int main(int argc, char* argv[])
 
         // Imprimimos na tela informações de estado e controles da bola
         TextRendering_ShowBallHUD(window);
+        if(displaySamples) DisplaySampleObjects(model);
+
+        // Imprimimos na tela os ângulos de Euler que controlam a rotação do
+        // terceiro cubo.
+        TextRendering_ShowEulerAngles(window);
 
         // Imprimimos na informação sobre a matriz de projeção sendo utilizada.
         TextRendering_ShowProjection(window);
@@ -526,6 +573,75 @@ int main(int argc, char* argv[])
     // Fim do programa
     return 0;
 }
+
+void DisplaySampleObjects(glm::mat4 &model){
+        // Desenhamos o modelo da moeda
+        model = Matrix_Translate(0.0f,-1.0f,0.0f)
+        * Matrix_Rotate_Y(g_AngleZ + (float)glfwGetTime() * 0.3f);
+        glUniformMatrix4fv(g_model_uniform, 1 , GL_FALSE , glm::value_ptr(model));
+        glUniform1i(g_object_id_uniform, COIN);
+        DrawVirtualObject("the_coin");
+
+        // Desenhamos o bloco
+        model = Matrix_Translate(0.0f,-1.0f,0.0f);
+        glUniformMatrix4fv(g_model_uniform, 1 , GL_FALSE , glm::value_ptr(model));
+        glUniform1i(g_object_id_uniform, BLOCK);
+        DrawVirtualObject("the_block");
+
+        // Desenhamos o modelo da chave
+        model = Matrix_Translate(1.0f,-1.0f,0.0f)
+        * Matrix_Rotate_Y(g_AngleZ + (float)glfwGetTime() * 0.3f);
+        glUniformMatrix4fv(g_model_uniform, 1 , GL_FALSE , glm::value_ptr(model));
+        glUniform1i(g_object_id_uniform, KEY);
+        DrawVirtualObject("the_key");
+
+        // Desenhamos o bloco
+        model = Matrix_Translate(1.0f,-1.0f,0.0f);
+        glUniformMatrix4fv(g_model_uniform, 1 , GL_FALSE , glm::value_ptr(model));
+        glUniform1i(g_object_id_uniform, BLOCK);
+        DrawVirtualObject("the_block");
+
+        // Desenhamos o modelo da esfera
+        model =   Matrix_Translate(2.0f, 0.0f, 0.0f) * Matrix_Scale(0.5f, 0.5f, 0.5f)
+        * Matrix_Rotate_Y(g_AngleZ + (float)glfwGetTime() * 0.3f);
+        glUniformMatrix4fv(g_model_uniform, 1 , GL_FALSE , glm::value_ptr(model));
+        glUniform1i(g_object_id_uniform, SPHERE);
+        DrawVirtualObject("the_sphere");
+
+        // Desenhamos o bloco
+        model = Matrix_Translate(2.0f,-1.0f,0.0f);
+        glUniformMatrix4fv(g_model_uniform, 1 , GL_FALSE , glm::value_ptr(model));
+        glUniform1i(g_object_id_uniform, BLOCK);
+        DrawVirtualObject("the_block");
+
+        // Desenhamos o modelo da banana
+        model = Matrix_Translate(0.0f,-1.0f,1.0f)
+        * Matrix_Rotate_Y(g_AngleZ + (float)glfwGetTime() * 0.3f);
+        glUniformMatrix4fv(g_model_uniform, 1 , GL_FALSE , glm::value_ptr(model));
+        glUniform1i(g_object_id_uniform, BANANA);
+        DrawVirtualObject("the_banana");
+
+        // Desenhamos o bloco
+        model = Matrix_Translate(0.0f,-1.0f,1.0f);
+        glUniformMatrix4fv(g_model_uniform, 1 , GL_FALSE , glm::value_ptr(model));
+        glUniform1i(g_object_id_uniform, BLOCK);
+        DrawVirtualObject("the_block");
+
+        // Desenhamos os espinhos
+        model = Matrix_Translate(1.0f,-1.0f,1.0f);
+        glUniformMatrix4fv(g_model_uniform, 1 , GL_FALSE , glm::value_ptr(model));
+        glUniform1i(g_object_id_uniform, SPIKES);
+        DrawVirtualObject("the_spikes");
+
+        // Desenhamos o bloco
+        model = Matrix_Translate(1.0f,-1.0f,1.0f);
+        glUniformMatrix4fv(g_model_uniform, 1 , GL_FALSE , glm::value_ptr(model));
+        glUniform1i(g_object_id_uniform, BLOCK);
+        DrawVirtualObject("the_block");
+}
+
+
+
 
 // Função que carrega uma imagem para ser utilizada como textura
 void LoadTextureImage(const char* filename)
@@ -660,6 +776,16 @@ void LoadShadersFromFiles()
     glUniform1i(glGetUniformLocation(g_GpuProgramID, "TextureImage0"), 0);
     glUniform1i(glGetUniformLocation(g_GpuProgramID, "TextureImage1"), 1);
     glUniform1i(glGetUniformLocation(g_GpuProgramID, "TextureImage2"), 2);
+    glUniform1i(glGetUniformLocation(g_GpuProgramID, "TextureImage3"), 3);
+    glUniform1i(glGetUniformLocation(g_GpuProgramID, "TextureImage4"), 4);
+    glUniform1i(glGetUniformLocation(g_GpuProgramID, "TextureImage5"), 5);
+    glUniform1i(glGetUniformLocation(g_GpuProgramID, "TextureImage6"), 6);
+    glUniform1i(glGetUniformLocation(g_GpuProgramID, "TextureImage7"), 7);
+    glUniform1i(glGetUniformLocation(g_GpuProgramID, "TextureImage8"), 8);
+    glUniform1i(glGetUniformLocation(g_GpuProgramID, "TextureImage9"), 9);
+    glUniform1i(glGetUniformLocation(g_GpuProgramID, "TextureImage10"), 10);
+    glUniform1i(glGetUniformLocation(g_GpuProgramID, "TextureImage11"), 11);
+    glUniform1i(glGetUniformLocation(g_GpuProgramID, "TextureImage12"), 12);
     glUseProgram(0);
 }
 

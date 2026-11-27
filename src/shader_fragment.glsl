@@ -22,6 +22,11 @@ uniform mat4 projection;
 #define SPHERE 0
 #define BUNNY  1
 #define PLANE  2
+#define COIN   3
+#define KEY    4
+#define BANANA 5
+#define BLOCK  6
+#define SPIKES 7
 uniform int object_id;
 
 // Parâmetros da axis-aligned bounding box (AABB) do modelo
@@ -32,6 +37,16 @@ uniform vec4 bbox_max;
 uniform sampler2D TextureImage0;
 uniform sampler2D TextureImage1;
 uniform sampler2D TextureImage2;
+uniform sampler2D TextureImage3;
+uniform sampler2D TextureImage4;
+uniform sampler2D TextureImage5;
+uniform sampler2D TextureImage6;
+uniform sampler2D TextureImage7;
+uniform sampler2D TextureImage8;
+uniform sampler2D TextureImage9;
+uniform sampler2D TextureImage10;
+uniform sampler2D TextureImage11;
+uniform sampler2D TextureImage12;
 
 // O valor de saída ("out") de um Fragment Shader é a cor final do fragmento.
 out vec4 color;
@@ -61,37 +76,20 @@ void main()
     // Vetor que define o sentido da fonte de luz principal e secundária em relação ao ponto atual.
     vec4 l  = normalize(vec4(0.65, 1.0, 0.55, 0.0));
     vec4 l2 = normalize(vec4(-0.6, -0.7, -0.5, 0.0));
-
     // Vetor que define o sentido da câmera em relação ao ponto atual.
     vec4 v = normalize(camera_position - p);
-
-    // Vetor de reflexão de Phong r = -l + 2*(n.l)*n
-    vec4 r = -l + 2.0 * n * dot(n, l);
 
     // Coordenadas de textura U e V
     float U = 0.0;
     float V = 0.0;
 
-    // Coeficientes de refletância difusa e especular
-    vec3  Kd0 = vec3(0.0);
-    vec3  Ks  = vec3(0.0);
-    float q   = 16.0;
+	// Coeficiente de refletância difusa
+    vec3 Kd0 = vec3(0.0);
+    vec3 Ks0 = vec3(0.0, 0.0, 0.0);
 
     if ( object_id == SPHERE )
     {
-        // Projeção esférica em coordenadas do modelo (acompanha a rotação da bola!)
-        vec4 bbox_center = (bbox_min + bbox_max) / 2.0;
-        vec4 d = position_model - bbox_center;
-
-        float rho   = length(d);
-        float theta = atan(d.x, d.z);
-        float phi   = asin(clamp(d.y / rho, -1.0, 1.0));
-
-        U = (theta + M_PI) / (2.0 * M_PI);
-        V = (phi + M_PI_2) / M_PI;
-
-        // Textura base modulada com os 6 gomos coloridos da bola de praia do Kula World
-        vec3 tex_sample = texture(TextureImage0, vec2(U, V)).rgb;
+        vec3 tex_sample = texture(TextureImage1, vec2(U, V)).rgb;
         float tex_detail = mix(0.82, 1.05, dot(tex_sample, vec3(0.333)));
 
         int sector = int(floor(U * 6.0)) % 6;
@@ -109,8 +107,7 @@ void main()
 
         Kd0 = stripe_color * tex_detail;
         // Aspecto plástico brilhante para a bola (especular forte e concentrado)
-        Ks  = vec3(0.65, 0.65, 0.65);
-        q   = 48.0;
+        Ks0  = vec3(0.65, 0.65, 0.65);
     }
     else if ( object_id == BUNNY )
     {
@@ -124,31 +121,68 @@ void main()
         V = (position_model.y - miny) / (maxy - miny);
 
         Kd0 = texture(TextureImage0, vec2(U,V)).rgb;
-        Ks  = vec3(0.25, 0.25, 0.25);
-        q   = 24.0;
+        Ks0 = vec3(0.25, 0.25, 0.25);
     }
     else if ( object_id == PLANE )
     {
-        // Coordenadas de textura do bloco/plano, obtidas do VAO/OBJ.
         U = texcoords.x;
         V = texcoords.y;
 
-        vec3 stone_tex = texture(TextureImage1, vec2(U, V)).rgb;
-        // Tom arenito egípcio inspirado nas plataformas do Kula World + borda sutil entre blocos
-        float border_dist = min(min(U, 1.0 - U), min(V, 1.0 - V));
-        float bevel = smoothstep(0.0, 0.05, border_dist);
-        Kd0 = stone_tex * vec3(1.15, 0.88, 0.60) * mix(0.68, 1.0, bevel);
-        Ks  = vec3(0.08, 0.07, 0.05);
-        q   = 12.0;
+		Kd0 = texture(TextureImage1, vec2(U,V)).rgb;
+    } else if ( object_id == COIN )
+    {
+        U = texcoords.x;
+        V = texcoords.y;
+
+		Kd0 = texture(TextureImage2, vec2(U,V)).rgb;
+        Ks0 = 2 * texture(TextureImage8, vec2(U,V)).rgb + vec3(0.5, 0.5, 0.5);
+    } else if ( object_id == KEY )
+    {
+        U = texcoords.x;
+        V = texcoords.y;
+
+		Kd0 = texture(TextureImage3, vec2(U,V)).rgb;
+        Ks0 = 2 * texture(TextureImage8, vec2(U,V)).rgb + vec3(0.5, 0.5, 0.5);
+    } else if ( object_id == BANANA )
+    {
+        U = texcoords.x;
+        V = texcoords.y;
+
+		Kd0 = texture(TextureImage7, vec2(U,V)).rgb;
+        Ks0 = vec3(0.1, 0.1, 0.1);
+    } else if ( object_id == BLOCK )
+    {
+        U = texcoords.x;
+        V = texcoords.y;
+
+        n =  texture(TextureImage11, vec2(U,V));
+		Kd0 = texture(TextureImage10, vec2(U,V)).rgb;
+        Ks0 = .2 * texture(TextureImage12, vec2(U,V)).rgb;
+    } else if ( object_id == SPIKES )
+    {
+        U = texcoords.x;
+        V = texcoords.y;
+
+		Kd0 = texture(TextureImage9, vec2(U,V)).rgb;
+        Ks0 = vec3(0.3, 0.3, 0.3);
     }
+
+    // Vetor de reflexão de Phong r = -l + 2*(n.l)*n
+    vec4 r = -l + 2.0 * n * dot(n, l);
+
+    // // Equação de Iluminação
+    // float lambert = max(0,dot(n,l));
+    // float phong = max(0, dot(r, v));
+    // vec3 ambient = vec3(0.02, 0.02, 0.025);
+    // color.rgb = Kd0 * (lambert + 0.01) + (Ks0 * phong) + ambient;
 
     // Equação de Iluminação de Phong com luz ambiente e luz de preenchimento (para faces inferiores/paredes)
     float lambert1 = max(0.0, dot(n, l));
     float lambert2 = 0.35 * max(0.0, dot(n, l2));
-    float phong    = pow(max(0.0, dot(r, v)), q);
+    float phong = max(0, dot(r, v));
     vec3  Ia       = vec3(0.22, 0.22, 0.24);
 
-    color.rgb = Kd0 * (lambert1 + lambert2 + Ia) + Ks * phong;
+    color.rgb = Kd0 * (lambert1 + lambert2 + Ia) + Ks0 * phong;
 
     // NOTE: Se você quiser fazer o rendering de objetos transparentes, é
     // necessário:

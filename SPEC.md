@@ -126,7 +126,7 @@ Para cada um dos requisitos abaixo (detalhados no [Enunciado do Trabalho final -
 
 ### Modelos de Iluminação em todos os objetos
 
-<mark>`Originalmente a iluminação parece estar "escrita" nas texturas dos objetos más implementaremos o modelo de Phong com luz ambiente para todos os objetos.`</mark>
+<mark>`Originalmente a iluminação parece estar "escrita" nas texturas dos objetos más implementaremos modelos de iluminação que permitam distinguir entre materiais diferentes e luz ambiente para todos os objetos.`</mark>
 
 > Comentário Professor: Diferenciem claramente os materiais dos objetos por meio do modelo de iluminação. Por exemplo, deem à bola um aspecto mais plástico e às moedas uma aparência metalizada. Talvez o modelo de Phong seja simples demais para vocês evidenciarem essas diferenças.
 
@@ -155,7 +155,7 @@ Para cada um dos requisitos abaixo (detalhados no [Enunciado do Trabalho final -
 > - Esta funcionalidade também deverá ser documentada no arquivo
 >   `README.md` da entrega final.
 
-<mark>`Objetos exceto as plataformas terão sombras projetadas. Será implementado uma HUD com informações para o jogador.`</mark>
+<mark>`Objetos exceto as plataformas projetam sombras sobre as plataformas. Será implementado uma HUD com informações para o jogador.`</mark>
 
 > Comentário Professor: Vocês afirmam que implementarão sombras projetadas pelos objetos, exceto pelas plataformas. Esclareçam o que significa essa exceção, distinguindo os objetos que projetam sombras daqueles que recebem sombras.
 
@@ -169,6 +169,6 @@ Para cada um dos requisitos abaixo (detalhados no [Enunciado do Trabalho final -
 > - Para cada item, **explique por que** não será implementado ou por
 >   que será implementado parcialmente.
 
-<mark>`Efeitos volumétricos não serão implementados. Serão excluídas as telas de início/fim de nível. Efeitos de particula como os que ocorrem ao coletar intens não serão implementados.`</mark>
+<mark>`Efeitos volumétricos, especificamente o efeito de separação atmosférica (neblina), não serão implementados. Serão excluídas as telas de início/fim de nível. Efeitos de particula como os que ocorrem ao coletar intens não serão implementados.`</mark>
 
 > Comentário Professor: Vocês mencionam que não implementarão efeitos volumétricos. Esclareçam quais são esses efeitos e o que exatamente pretendem deixar de implementar.
